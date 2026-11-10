@@ -1,0 +1,22 @@
+@if (!joined()) {
+  <main class="welcome">
+    <div class="welcome-copy"><a class="brand" href="/">✳ <span>Warmly</span></a><div class="eyebrow">YOUR CAMPUS. YOUR PEOPLE.</div><h1>Большие знакомства.<br><em>С простого привет.</em></h1><p>Место, где можно найти компанию, обсудить учёбу<br>и просто быть собой.</p><div class="welcome-note"><span class="orb">W</span><span>Студенческая жизнь начинается<br>с общения.</span></div></div>
+    <form class="join-card" (ngSubmit)="join()"><span class="small-logo">✳</span><h2>Заходи в общий чат</h2><p>Познакомься с людьми по ту сторону кампуса.</p><label for="name">Как тебя зовут?</label><input id="name" name="name" [(ngModel)]="name" maxlength="32" placeholder="Твоё имя" required autocomplete="nickname"><button class="primary" [disabled]="!name.trim() || pending()">{{ pending() ? 'Подключаемся…' : 'Присоединиться →' }}</button><p class="fine">Пока без регистрации. Имя видно всем участникам.<br>История хранится до перезапуска сервера.</p>@if (error()) { <p class="error" role="alert">{{ error() }}</p> }</form>
+  </main>
+} @else {
+  <div class="workspace">
+    <aside class="sidebar"><a class="brand" href="/">✳ <span>Warmly</span></a><div class="space-label">ТВОЁ ПРОСТРАНСТВО</div><div class="nav-active">◌ <span>Сообщения</span><span class="pill">1</span></div><div class="sidebar-bottom"><div class="avatar">{{ name.charAt(0).toUpperCase() }}</div><div><strong>{{ name }}</strong><small>Гость Warmly</small></div><button class="exit" (click)="leave()" aria-label="Выйти из чата" title="Выйти">↗</button></div></aside>
+    <main class="main"><header class="page-heading"><div><div class="eyebrow">STAY CLOSE, FEEL WARMLY</div><h1>Сообщения<span>.</span></h1></div><span class="beta">EARLY ACCESS</span></header>
+      <section class="chat-layout" aria-label="Общий чат">
+        <aside class="rooms"><h2>Твои чаты <span>01</span></h2><div class="room selected"><div class="room-icon">✳</div><div><strong>Общий чат</strong><p>Здесь начинается знакомство</p></div><span class="room-dot"></span></div><div class="room-note"><span>✧</span><h3>Свои люди рядом</h3><p>Спроси про учёбу, предложи встретиться или просто поздоровайся.</p></div><div class="online"><h3>СЕЙЧАС В ЧАТЕ · {{ members().length }}</h3>@for (member of members(); track member.id) { <div class="online-person"><span class="mini-avatar">{{ member.name.charAt(0).toUpperCase() }}</span><span>{{ member.name }}{{ member.id === self()?.id ? ' (ты)' : '' }}</span><i></i></div> }</div></aside>
+        <div class="conversation"><header class="chat-heading"><div class="room-icon">✳</div><div><h2>Общий чат</h2><p class="connection" role="status"><i [class.offline]="!connected()"></i>{{ connected() ? members().length + ' в сети · открыто для всех' : 'Соединение потеряно · подключаемся…' }}</p></div><button class="mobile-exit" (click)="leave()">Выйти</button></header>
+          <div class="timeline" #timeline role="log" aria-label="Сообщения" aria-live="polite"><div class="start-note"><span>НАЧАЛО ЧЕГО-ТО ХОРОШЕГО</span><h3>Добро пожаловать в Warmly ✨</h3><p>Один кампус. Много интересных людей.</p></div>
+            @if (!messages().length) { <div class="empty"><span>☏</span><h3>Первое слово за тобой</h3><p>Напиши «Привет!» — с этого всё начинается.</p></div> }
+            @for (message of messages(); track message.id) { <article class="message" [class.mine]="ownIds.has(message.sender.id)"><div class="avatar">{{ message.sender.name.charAt(0).toUpperCase() }}</div><div class="message-content"><div class="message-meta"><strong>{{ message.sender.name }}</strong><time>{{ message.createdAt | date:'HH:mm' }}</time></div><div class="bubble">{{ message.text }}</div></div></article> }
+          </div>
+          <div class="composer-wrap">@if (error()) { <p class="error" role="alert">{{ error() }}</p> }<form class="composer" (ngSubmit)="send()"><textarea aria-label="Сообщение" name="message" [(ngModel)]="draft" (keydown)="keydown($event)" maxlength="2000" rows="1" placeholder="Напиши что-нибудь хорошее…"></textarea><button class="send" aria-label="Отправить сообщение" [disabled]="!draft.trim() || !connected() || pending()">↑</button></form><div class="composer-hint"><span>Enter — отправить · Shift + Enter — новая строка</span><span>{{ draft.length }} / 2000</span></div></div>
+        </div>
+      </section><footer>Немного тепла в твоём студенческом дне. <span>✳ Warmly</span></footer>
+    </main>
+  </div>
+}

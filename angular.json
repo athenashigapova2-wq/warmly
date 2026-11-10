@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json", "version": 1,
+  "cli": { "analytics": false },
+  "projects": { "warmly": {
+    "projectType": "application", "root": "Client", "sourceRoot": "Client/src",
+    "architect": {
+      "build": { "builder": "@angular/build:application", "options": {
+        "browser": "Client/src/main.ts", "index": "Client/src/index.html", "tsConfig": "Client/tsconfig.app.json",
+        "styles": ["Client/src/styles.css"], "outputPath": "dist/warmly"
+      }, "configurations": { "production": { "optimization": { "scripts": true, "styles": true, "fonts": false }, "outputHashing": "all", "budgets": [{ "type": "initial", "maximumWarning": "650kB", "maximumError": "1MB" }] } }, "defaultConfiguration": "production" },
+      "serve": { "builder": "@angular/build:dev-server", "options": { "buildTarget": "warmly:build", "proxyConfig": "Client/proxy.json" } }
+    }
+  } }
+}
