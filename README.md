@@ -1,5 +1,7 @@
 # Warmly
 
+[Открыть Warmly в браузере](https://warmly-campus-chat.athena-is-you.chatgpt.site) — публичная тестовая версия на английском.
+
 Студенческий мессенджер. Первый рабочий срез: общий чат на Angular, Express и Socket.IO.
 Дизайн вдохновлён предоставленными макетами и https://elite-uni-sphere-connect.base44.app.
 
