@@ -21,7 +21,7 @@ export function createChatServer() {
     socket.on('join', (payload, reply) => {
       if (typeof reply !== 'function') return;
       const name = typeof payload?.name === 'string' ? payload.name.trim() : '';
-      if (!name || name.length > 32) return reply({ error: 'Имя должно содержать от 1 до 32 символов.' });
+      if (!name || name.length > 32) return reply({ error: 'Your name must be between 1 and 32 characters.' });
       if (!members.has(socket.id)) {
         members.set(socket.id, { id: socket.id, name });
         socket.join('general');
@@ -32,14 +32,14 @@ export function createChatServer() {
     socket.on('message:send', (payload, reply) => {
       if (typeof reply !== 'function') return;
       const member = members.get(socket.id);
-      if (!member) return reply({ error: 'Сначала войдите в чат.' });
+      if (!member) return reply({ error: 'Please join the chat first.' });
       const text = typeof payload?.text === 'string' ? payload.text.trim() : '';
       const key = payload?.clientMessageId;
       if (!text || text.length > 2000 || typeof key !== 'string' || !/^[\w-]{1,64}$/.test(key)) {
-        return reply({ error: 'Сообщение должно содержать от 1 до 2000 символов.' });
+        return reply({ error: 'Messages must be between 1 and 2000 characters.' });
       }
       if (receipts.has(key)) return reply({ message: receipts.get(key) });
-      if (Date.now() - lastSent < 500) return reply({ error: 'Слишком быстро. Подождите секунду.' });
+      if (Date.now() - lastSent < 500) return reply({ error: 'Slow down a little. Try again in a second.' });
       lastSent = Date.now();
       const message = { id: randomUUID(), sender: member, text, createdAt: new Date().toISOString() };
       messages.push(message);
