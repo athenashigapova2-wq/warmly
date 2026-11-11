@@ -1,6 +1,5 @@
-import { io } from 'socket.io-client';
 
-export const hosted = Boolean((window as unknown as { __WARMLY_HOSTED__?: boolean }).__WARMLY_HOSTED__);
+export const hosted = true;
 type Listener = (...args: any[]) => void;
 type Reply = (error: Error | null, result?: any) => void;
 interface Transport {
@@ -10,7 +9,7 @@ interface Transport {
   timeout(ms: number): { emit(event: string, payload: unknown, reply: Reply): unknown };
 }
 
-// Sites hosts a stateless Worker: poll shared D1 state instead of keeping a Node socket alive.
+// Both runtimes poll the same Supabase-backed API.
 class HostedTransport implements Transport {
   private listeners = new Map<string, Listener[]>();
   private token = '';
@@ -91,5 +90,5 @@ class HostedTransport implements Transport {
 }
 
 export function createChatTransport(): Transport {
-  return hosted ? new HostedTransport() : io({ autoConnect: false });
+  return new HostedTransport();
 }

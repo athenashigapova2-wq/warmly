@@ -1,68 +1,44 @@
 # Warmly
 
-[Открыть Warmly в браузере](https://warmly-campus-chat.athena-is-you.chatgpt.site) — публичная тестовая версия на английском.
+A student community chat with an English interface and **Supabase PostgreSQL storage**.
 
-Студенческий мессенджер. Первый рабочий срез: общий чат на Angular, Express и Socket.IO.
-Дизайн вдохновлён предоставленными макетами и https://elite-uni-sphere-connect.base44.app.
+Public test site: https://warmly-campus-chat.athena-is-you.chatgpt.site
 
-## Запуск
+> This Supabase-only version has D1 disabled. Chat is temporarily offline until project access,
+> schema migration and server credentials are configured and verified.
 
-Нужен Node.js 24.15+.
+## Run locally
+
+Use Node.js 24.15 or later. Configure the selected Supabase project using [HOSTING.md](HOSTING.md),
+then create a local `.env` from `.env.example`. Do not commit the server key.
 
 ```sh
 npm ci
-npm start
-```
-
-Откройте http://127.0.0.1:3000 в двух вкладках, введите разные имена и отправьте сообщение.
-`npm start` собирает Angular и запускает сервер. Остановить: Ctrl+C.
-
-Для разработки с автоматическим обновлением:
-
-```sh
 npm run dev
 ```
 
-Интерфейс разработки: http://127.0.0.1:4200. Express работает на порту 3000;
-Angular проксирует Socket.IO и `/api`. Откройте корневую папку в VS Code.
+Open http://127.0.0.1:4200. Angular proxies API calls to the local server on port 3000.
+Both local and hosted clients use Supabase; missing credentials return a configuration
+error rather than silently storing data elsewhere.
 
-## Возможности
+For a built preview: `npm start` serves http://127.0.0.1:3000.
 
-- Вход по имени без регистрации, выход из комнаты.
-- Общий чат в реальном времени и список участников онлайн.
-- Автоматическое переподключение и получение последних 100 сообщений.
-- Подтверждение отправки, ошибки соединения, ограничение длины и частоты сообщений.
-- Адаптивный интерфейс, Enter для отправки, Shift+Enter для новой строки.
-- Сервер задаёт отправителя; Angular выводит сообщения как текст.
+## Current features
 
-## Ограничения текущего прототипа
+- A shared guest chat, English interface and responsive mobile layout.
+- Online presence, reconnect handling and the latest 100 messages.
+- Server-generated identity, input limits, duplicate prevention and transactional rate limits.
+- Public testing without verified accounts; all room participants can read its messages.
 
-История хранится в памяти и исчезает после перезапуска сервера. Каждая вкладка считается
-отдельным участником. Имена не уникальны и не подтверждены. Нет аккаунтов, приватных
-диалогов, MongoDB и модерации. Публичность GitHub-репозитория не публикует само приложение.
-Сервер по умолчанию слушает только 127.0.0.1; HOST и PORT задаются переменными окружения.
-При потере подтверждения отправки текст остаётся в поле: проверьте историю перед повтором.
-Google Fonts используется опционально; без сети включается системный шрифт.
-
-## Проверка
+## Checks
 
 ```sh
 npm test
 npm run build
 ```
 
-Тесты запускают настоящий Socket.IO-сервер и несколько клиентов: доставка, история,
-проверка данных, атрибуция отправителя, дубли, ограничение частоты и присутствие.
+With a configured database and running server, `npm run test:browser` checks two browser sessions.
+SQL migration and RLS checks must also pass against Supabase before publishing the cutover.
 
-## Структура
-
-- `Client/src` — Angular, шаблон и стили.
-- `Server/app.js` — сервер и протокол комнаты; `Server/index.js` — запуск.
-- `tests` — интеграционные тесты.
-- `docs` — план дальнейшего развития, включая MongoDB и регистрацию.
-
-Браузерная проверка (установленный Microsoft Edge и работающий сервер): npm run test:browser.
-Оставшиеся ограничения зависимостей: [DEPENDENCIES.md](DEPENDENCIES.md).
-
-## Веб-версия для тестирования
-Интерфейс переведён на английский. Облачная версия использует общий чат с D1 и обновлением раз в 1,5 секунды; локальная версия сохраняет Socket.IO. Подробности: [HOSTING.md](HOSTING.md).
+Source: `Client/src`, `Server`, `Hosting`, and `supabase/migrations`.
+Known dependency limitations: [DEPENDENCIES.md](DEPENDENCIES.md).

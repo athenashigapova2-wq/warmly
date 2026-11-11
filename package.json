@@ -7,12 +7,12 @@
     "node": ">=24.15.0"
   },
   "scripts": {
-    "start": "npm run build && node Server/index.js",
-    "dev": "concurrently -k \"node --watch Server/index.js\" \"ng serve --host 127.0.0.1\"",
+    "start": "npm run build && node --env-file-if-exists=.env Server/index.js",
+    "dev": "concurrently -k \"node --env-file-if-exists=.env --watch Server/index.js\" \"ng serve --host 127.0.0.1\"",
     "build": "ng build && node Hosting/build.mjs",
     "test": "node --test tests/*.test.js",
     "test:browser": "node tests/browser.mjs",
-    "preview:hosted": "node Hosting/preview.mjs"
+    "preview:hosted": "node --env-file-if-exists=.env Hosting/preview.mjs"
   },
   "dependencies": {
     "@angular/common": "21.2.26",

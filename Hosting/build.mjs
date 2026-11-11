@@ -21,7 +21,8 @@ async function walk(directory) {
 }
 await walk(sourcePath);
 if (!assets['/index.html']) throw new Error('Build Angular before packaging the hosted Worker.');
-const worker = (await readFile(new URL('./worker.js', import.meta.url), 'utf8')).replace('export default createHostedWorker();', `export default createHostedWorker(${JSON.stringify(assets)});`);
+const storage = await readFile(new URL('./supabase-store.js', import.meta.url), 'utf8');
+const worker = storage + '\n' + (await readFile(new URL('./worker.js', import.meta.url), 'utf8')).replace("import { createSupabaseStore } from './supabase-store.js';", '').replace('export default createHostedWorker();', `export default createHostedWorker(${JSON.stringify(assets)});`);
 await mkdir(new URL('../dist/server/', import.meta.url), { recursive: true });
 await mkdir(new URL('../dist/.openai/', import.meta.url), { recursive: true });
 await writeFile(new URL('../dist/server/index.js', import.meta.url), worker);

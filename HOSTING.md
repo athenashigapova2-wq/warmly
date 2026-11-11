@@ -1,35 +1,43 @@
-# Warmly web testing
+# Supabase storage
 
-The complete user interface is English. The same Angular UI supports two runtimes:
+Warmly's target database is the **Warmly** project in Supabase. Both the local server
+and the published Worker use the same PostgreSQL RPC and tables. There is no D1 or
+in-memory fallback in this version.
 
-- Local development: Express + Socket.IO, with messages in server memory.
-- Public web testing: a Cloudflare Worker deployed through Sites, with shared D1 storage.
+## Required setup
 
-The hosted room polls for new messages every 1.5 seconds. It retains the latest 100 messages.
-Guests choose a display name; names are not verified. Everyone in the public room can read its history.
-There are no accounts, private chats, attachments or moderation tools yet.
+1. Apply `supabase/migrations/202611110001_warmly_chat.sql` to the selected project.
+2. Configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in the server environment.
+   `SUPABASE_SERVICE_ROLE_KEY` is also accepted for legacy service-role keys.
+3. For local development, copy `.env.example` to `.env` and fill it in locally.
+4. For Sites, store these variables in the Site's runtime environment, never in source.
 
-The hosted API issues random, short-lived guest tokens, stores only their hashes,
-validates message lengths, limits sending frequency, and ignores client-supplied sender identities.
-Online presence expires after 30 seconds without a heartbeat. Guest sessions expire after 24 hours.
+The secret key must not appear in Angular, browser storage, screenshots, Git, or chat messages.
+The Data API RPC is executable only by `service_role`. RLS is enabled on both tables;
+`anon` and `authenticated` have no table access and cannot invoke the RPC.
 
-## Build and test
+Tables: `public.warmly_sessions` and `public.warmly_messages`. Guest sessions expire
+after 24 hours; online presence expires after 30 seconds. The latest 100 messages
+are retained, and the UI refreshes every 1.5 seconds. Supabase Auth accounts are not
+part of this migration: guests still enter an unverified display name.
 
-```sh
-npm ci
-npm test
-npm run build
-npm run preview:hosted
-```
+## Cutover checklist
 
-The last command starts a local preview of the hosted Worker at http://127.0.0.1:4300,
-using an in-memory SQLite adapter with the same schema and SQL as D1. It does not use the live database.
-Set `CHAT_URL` to that address and run `npm run test:browser` for two-browser checks.
-The existing `npm run dev` command still starts local Angular and Socket.IO development.
+- Confirm the Supabase project and inspect existing objects before applying SQL.
+- Verify schema, RPC health, invalid tokens, concurrent sending, and RLS denial for public keys.
+- Copy retained messages from the former D1 database, preserving IDs and ordering.
+  Do not migrate expired guest credentials. Existing visitors join again after cutover.
+- Configure server variables, deploy with `d1: null`, and check two independent guests.
+- Verify `/api/health` returns `storage: supabase` from the live deployment.
+- Keep the old D1 database disconnected as a rollback backup; deleting it is a separate action.
 
-`Hosting/worker.js` contains the hosted API, `Hosting/build.mjs` embeds the compiled Angular assets,
-and `drizzle/` contains the initial D1 schema migration. Applied migrations must not be edited.
-The Site identity and D1 binding are in `.openai/hosting.json`.
+Historical D1 migrations are archived unchanged under `docs/legacy-d1/`; they are not
+part of the deployment package. Sites can continue to host the page and stateless API,
+but it no longer supplies application storage after a successful cutover.
 
-The hosted Worker does not execute Express or the local Node dependency tree. Remaining local
-toolchain/server audit warnings are documented in `DEPENDENCIES.md`.
+## Validation
+
+`npm test` checks the HTTP/Supabase integration contract without production credentials.
+These tests do not replace a real PostgreSQL migration/RLS check. `npm run build`
+builds Angular and packages the stateless Worker. `npm run dev` and
+`npm run preview:hosted` require the configured Supabase server environment.

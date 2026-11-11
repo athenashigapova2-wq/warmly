@@ -1,55 +1,30 @@
 import express from 'express';
 import { createServer } from 'node:http';
-import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { Server } from 'socket.io';
+import { createHostedWorker } from '../Hosting/worker.js';
 
-// Ephemeral public room. No accounts or private conversations in this slice.
-export function createChatServer() {
+// Local and hosted clients use the same Supabase-backed API. No fallback storage.
+export function createChatServer({ env = process.env, requestStorage = fetch } = {}) {
   const app = express();
-  const http = createServer(app);
-  const io = new Server(http, { maxHttpBufferSize: 16_384 });
-  const messages = [];
-  const members = new Map();
+  const worker = createHostedWorker({}, requestStorage);
   app.disable('x-powered-by');
-  app.get('/api/health', (_req, res) => res.json({ ok: true, storage: 'memory' }));
-  app.use(express.static(fileURLToPath(new URL('../dist/warmly/browser', import.meta.url))));
-  const presence = () => io.to('general').emit('presence', [...members.values()]);
-  io.on('connection', socket => {
-    let lastSent = 0;
-    const receipts = new Map();
-    socket.on('join', (payload, reply) => {
-      if (typeof reply !== 'function') return;
-      const name = typeof payload?.name === 'string' ? payload.name.trim() : '';
-      if (!name || name.length > 32) return reply({ error: 'Your name must be between 1 and 32 characters.' });
-      if (!members.has(socket.id)) {
-        members.set(socket.id, { id: socket.id, name });
-        socket.join('general');
-      }
-      reply({ self: members.get(socket.id), messages });
-      presence();
-    });
-    socket.on('message:send', (payload, reply) => {
-      if (typeof reply !== 'function') return;
-      const member = members.get(socket.id);
-      if (!member) return reply({ error: 'Please join the chat first.' });
-      const text = typeof payload?.text === 'string' ? payload.text.trim() : '';
-      const key = payload?.clientMessageId;
-      if (!text || text.length > 2000 || typeof key !== 'string' || !/^[\w-]{1,64}$/.test(key)) {
-        return reply({ error: 'Messages must be between 1 and 2000 characters.' });
-      }
-      if (receipts.has(key)) return reply({ message: receipts.get(key) });
-      if (Date.now() - lastSent < 500) return reply({ error: 'Slow down a little. Try again in a second.' });
-      lastSent = Date.now();
-      const message = { id: randomUUID(), sender: member, text, createdAt: new Date().toISOString() };
-      messages.push(message);
-      if (messages.length > 100) messages.shift();
-      receipts.set(key, message);
-      if (receipts.size > 100) receipts.delete(receipts.keys().next().value);
-      io.to('general').emit('message:new', message);
-      reply({ message });
-    });
-    socket.on('disconnect', () => { members.delete(socket.id); presence(); });
+  app.use('/api', express.raw({ type: () => true, limit: '8kb', inflate: false }));
+  app.use('/api', async (req, res) => {
+    try {
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(req.headers)) if (typeof value === 'string') headers.set(key, value);
+      headers.set('cf-connecting-ip', req.socket.remoteAddress || 'local-preview');
+      const request = new Request(`http://${req.headers.host}${req.originalUrl}`, {
+        method: req.method, headers,
+        ...(['GET', 'HEAD'].includes(req.method) ? {} : { body: req.body || Buffer.alloc(0) }),
+      });
+      const response = await worker.fetch(request, env);
+      res.status(response.status);
+      response.headers.forEach((value, key) => res.setHeader(key, value));
+      res.send(Buffer.from(await response.arrayBuffer()));
+    } catch { res.status(503).json({ error: 'Chat is temporarily unavailable. Please try again.' }); }
   });
-  return { http, io };
+  app.use(express.static(fileURLToPath(new URL('../dist/warmly/browser', import.meta.url))));
+  app.use((error, _req, res, _next) => res.status(error.status === 413 ? 413 : 400).json({ error: error.status === 413 ? 'Request is too large.' : 'Invalid request body.' }));
+  return { app, http: createServer(app) };
 }
