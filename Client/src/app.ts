@@ -3,7 +3,7 @@ import { Component, inject, signal, ViewChild, ElementRef } from '@angular/core'
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
-import { authFeedback } from './auth-utils';
+import { authFeedback, rememberedEmail, rememberEmail, restoreAuth } from './auth-utils';
 @Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
@@ -23,6 +23,8 @@ export class App {
   private retry?: {chatId:string; body:string; clientId:string};
   constructor() { void this.initialize(); }
   async initialize() {
+    this.email=rememberedEmail(localStorage);
+    if(this.email){this.welcomeSeen.set(true);this.showEmail.set(true);this.signup=false;}
     const until=Number(sessionStorage.getItem('warmly.auth.retry-until') || 0);
     if(until>Date.now())this.cooldown(Math.ceil((until-Date.now())/1000));
     try {
@@ -41,22 +43,25 @@ export class App {
   }
   async connect() {
     await this.run(async()=>{
-      this.api.configure(this.url.trim(),this.key.trim()); this.stage.set('auth');
+      this.api.configure(this.url.trim(),this.key.trim());
       this.api.client.auth.onAuthStateChange((event)=>{ if (event==='SIGNED_OUT') this.reset(); });
-      await this.api.finishOAuth(location.href);
-      const {data} = await this.api.client.auth.getSession();
-      if (data.session) { this.me.set(data.session.user.id); await this.loadAccount(); }
+      try {
+        const session=await restoreAuth(this.api.client.auth,()=>this.api.finishOAuth(location.href));
+        if(session){this.remember(session.user.email);this.me.set(session.user.id);await this.loadAccount();}
+        else this.stage.set('auth');
+      } catch(error){this.stage.set('auth');this.welcomeSeen.set(true);this.signup=false;throw error;}
     });
     if(this.api.client)await this.api.watchNativeCallback(url=>{
       this.nativeReturn=this.nativeReturn.then(async()=>{
         try {
           if(!await this.api.finishOAuth(url))return;
           const {data}=await this.api.client.auth.getSession();
-          if(data.session){this.me.set(data.session.user.id);await this.loadAccount();this.error.set('');this.notice.set('');}
+          if(data.session){this.remember(data.session.user.email);this.me.set(data.session.user.id);await this.loadAccount();this.error.set('');this.notice.set('');}
         }catch(e){this.error.set((e as Error).message);}
       });
     });
   }
+  remember(email?:string){if(email){this.email=email;rememberEmail(localStorage,email);}this.welcomeSeen.set(true);this.signup=false;this.canResend.set(false);}
   cooldown(seconds:number) {
     const until=Date.now()+seconds*1000;sessionStorage.setItem('warmly.auth.retry-until',String(until));
     clearTimeout(this.cooldownTimer);
@@ -64,7 +69,7 @@ export class App {
   }
   authError(error:any):never {
     const feedback=authFeedback(error);if(feedback.retrySeconds)this.cooldown(feedback.retrySeconds);
-    if(error.code==='email_not_confirmed')this.canResend.set(true);
+    if(error.code==='email_not_confirmed'){this.canResend.set(true);this.signup=false;rememberEmail(localStorage,this.email);}
     throw new Error(feedback.message);
   }
   google() {void this.run(async()=>{
@@ -77,10 +82,11 @@ export class App {
   });}
   authenticate() { if(this.signup && this.retryIn())return;void this.run(async()=>{
     const credentials = {email:this.email.trim(),password:this.password};
+    rememberEmail(localStorage,credentials.email);this.canResend.set(false);
     const {data,error} = this.signup ? await this.api.client.auth.signUp({...credentials,options:{emailRedirectTo:this.api.redirectUrl()}}) : await this.api.client.auth.signInWithPassword(credentials);
     if (error)this.authError(error); this.password='';
-    if (!data.session) { this.cooldown(60);this.canResend.set(true);this.notice.set('Check your email to confirm your account, then come back and sign in.'); this.signup=false; return; }
-    this.me.set(data.session.user.id); await this.loadAccount();
+    if (!data.session) { this.cooldown(60);this.canResend.set(true);this.notice.set('If this is a new account, check your email to confirm it once. If you already have an account, sign in below or continue with Google.'); this.signup=false; return; }
+    this.remember(data.session.user.email);this.me.set(data.session.user.id); await this.loadAccount();
   }); }
   async loadAccount() {
     const {data,error} = await this.api.client.from('profiles').select('*').eq('id',this.me()).maybeSingle();
@@ -91,7 +97,7 @@ export class App {
   }
   saveProfile() { void this.run(async()=>{ await this.api.rpc('profile',{name:this.name,username:this.username}); await this.loadAccount(); }); }
   reset() {
-    this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
+    this.signup=false;this.canResend.set(false);this.password='';this.welcomeSeen.set(true);this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
     this.profiles.set([]); this.friendships.set([]); this.chats.set([]); this.memberships.set([]);
     this.results.set([]); this.query=''; this.draft=''; this.retry=undefined; this.selected=[]; this.me.set(''); this.stage.set('auth');this.view.set('home');this.details.set(false);this.searched.set(false);
   }

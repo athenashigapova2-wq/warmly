@@ -32,3 +32,21 @@ export function oauthCallback(raw: string, expected: string) {
   const code=url.searchParams.get('code');
   return code ? {error:null,code} : null;
 }
+
+// Remember only the address. Passwords remain under Supabase/browser control.
+export function rememberedEmail(storage: Pick<Storage,'getItem'>): string {
+  try {return storage.getItem('warmly.auth.email') || '';} catch {return '';}
+}
+export function rememberEmail(storage: Pick<Storage,'setItem'>, email:string) {
+  try {if(email.trim())storage.setItem('warmly.auth.email',email.trim());} catch {}
+}
+export async function restoreAuth(auth:{getSession:()=>Promise<any>}, callback:()=>Promise<unknown>) {
+  let callbackError:unknown;
+  try {await callback();} catch(error){callbackError=error;}
+  const {data,error}=await auth.getSession();
+  // A stale confirmation link must not discard an existing valid session.
+  if(data?.session)return data.session;
+  if(callbackError)throw callbackError;
+  if(error)throw error;
+  return null;
+}

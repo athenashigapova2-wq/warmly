@@ -30,11 +30,11 @@ export class MessengerApi {
     const callback=oauthCallback(raw,this.redirectUrl());
     if(!callback)return false;
     if(!Capacitor.isNativePlatform())history.replaceState(null,'',new URL('.',location.href).pathname);
-    if(callback.error)throw new Error(callback.error==='access_denied'?'Google sign-in was cancelled. You can try again.':'Google sign-in could not be completed. Please try again.');
+    if(callback.error)throw new Error(callback.error==='access_denied'?'Sign-in was cancelled. You can try again.':'This sign-in link could not be completed. Sign in with your email and password, or continue with Google.');
     if(this.callbackCodes.has(callback.code!))return false;
     this.callbackCodes.add(callback.code!);
     const {error}=await this.client.auth.exchangeCodeForSession(callback.code!);
-    if(error)throw new Error('This sign-in link has expired or was opened in a different browser. Start Google sign-in again here.');
+    if(error)throw new Error('This link has expired, was already used, or was opened in another browser. If you confirmed your email, sign in with your email and password. You can also continue with Google.');
     if(Capacitor.isNativePlatform())await Browser.close().catch(()=>{});
     return true;
   }

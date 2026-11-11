@@ -1,5 +1,5 @@
 @if(stage()==='auth' && !welcomeSeen()){
-<main class="landing"><a class="brand" href="/">✳ Warmly</a><div class="landing-grid"><section><div class="eyebrow">YOUR CAMPUS. YOUR PEOPLE.</div><h1>The student network<br>for <em>university life.</em></h1><p>Meet students, find study buddies,<br>and grow together.</p><button class="primary" (click)="welcomeSeen.set(true);signup=true">Get started →</button><button class="text-button" (click)="welcomeSeen.set(true);signup=false">I already have an account</button></section><img src="welcome-students.png" alt="Three university students sharing a laptop on campus"></div><footer>A little warmth. A world of connections.</footer></main>
+<main class="landing"><a class="brand" href="/">✳ Warmly</a><div class="landing-grid"><section><div class="eyebrow">YOUR CAMPUS. YOUR PEOPLE.</div><h1>The student network<br>for <em>university life.</em></h1><p>Meet students, find study buddies,<br>and grow together.</p><button class="primary" (click)="welcomeSeen.set(true);signup=false">Get started →</button><button class="text-button" (click)="welcomeSeen.set(true);signup=false">I already have an account</button></section><img src="welcome-students.png" alt="Three university students sharing a laptop on campus"></div><footer>A little warmth. A world of connections.</footer></main>
 } @else if (stage() !== 'app') {
 <main class="welcome">
   <div class="welcome-copy"><a class="brand" href="/">✳ Warmly</a><div class="eyebrow">YOUR CAMPUS. YOUR PEOPLE.</div><h1>Great connections.<br><em>Start with hello.</em></h1><p>Find your people. Make a group.<br>Keep the conversation going.</p></div>
@@ -15,7 +15,7 @@
       <button class="text-button" (click)="showEmail.set(!showEmail())" [attr.aria-expanded]="showEmail()">{{showEmail() ? 'Hide email sign-in' : 'Or continue with email'}}</button>
       @if(showEmail()){
         <form (ngSubmit)="authenticate()"><label for="email">Email</label><input id="email" name="email" type="email" [(ngModel)]="email" autocomplete="email" required><label for="password">Password</label><input id="password" name="password" type="password" [(ngModel)]="password" [attr.autocomplete]="signup ? 'new-password' : 'current-password'" [attr.minlength]="signup ? 8 : null" required><button class="primary" [disabled]="busy() || (signup && retryIn()>0)">{{busy() ? 'Please wait…' : signup && retryIn()>0 ? 'Try again in ' + retryIn() + 's' : signup ? 'Create account' : 'Sign in'}}</button></form>
-        <button class="text-button" (click)="signup=!signup; error.set(''); notice.set('')" [disabled]="busy()">{{signup ? 'Already a member? Sign in' : 'New here? Create an account'}}</button>
+        <button class="text-button" (click)="signup=!signup; canResend.set(false); error.set(''); notice.set('')" [disabled]="busy()">{{signup ? 'Already a member? Sign in' : 'New here? Create an account'}}</button>
         @if(canResend()){<button class="text-button" (click)="resend()" [disabled]="busy() || retryIn()>0 || !email.trim()">{{retryIn()>0 ? 'Resend email in ' + retryIn() + 's' : 'Resend confirmation email'}}</button>}
       }
     } @else {
