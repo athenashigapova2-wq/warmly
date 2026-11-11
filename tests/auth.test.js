@@ -37,3 +37,8 @@ test('stale callback cannot block a stored session; absent session retains actio
  assert.equal(await restoreAuth({getSession:async()=>({data:{session:null}})},async()=>false),null);
  await assert.rejects(()=>restoreAuth({getSession:async()=>({data:{session:null},error:Error('network')})},async()=>false),/network/);
 });
+
+test('remember-email opt-out prevents later sign-in from caching the address',()=>{
+ const data=new Map([['warmly.remember-email','false']]);const storage={getItem:k=>data.get(k),setItem:(k,v)=>data.set(k,v)};
+ rememberEmail(storage,'student@example.com');assert.equal(data.has('warmly.auth.email'),false);assert.equal(rememberedEmail(storage),'');
+});

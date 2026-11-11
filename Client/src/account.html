@@ -1,0 +1,36 @@
+<section class="account-panel">
+@if(section()==='menu'){
+<header class="account-banner"><span class="account-avatar">{{person()?.name?.[0]}}</span><div><h2>{{person()?.name}}</h2><p>{{email()}}</p><small>&#64;{{person()?.username}}</small></div></header>
+<nav class="account-menu" aria-label="Account menu">@for(item of options;track item[0]){<button (click)="go(item[0])"><span class="menu-icon">{{item[1]}}</span><span>{{item[2]}}</span><span class="chevron">›</span></button>}<button (click)="signout.emit()"><span class="menu-icon">↪</span><span>Log Out</span><span class="chevron">›</span></button></nav>
+}@else{
+<header class="account-heading"><button class="text-button" (click)="go('menu')" [disabled]="busy()">← My account</button><h2>{{label()}}</h2></header>
+@if(error()){<p class="error banner" role="alert">{{error()}}</p>}@if(notice()){<p class="notice" role="status">{{notice()}}</p>}
+@if(section()==='profile'){<warmly-social [me]="me()" mode="profile" [profiles]="profiles()" (saved)="saved.emit()"/>}
+@if(section()==='posts' || section()==='saved'){
+ @for(row of rows();track row.id || row.post_id){@let p=section()==='saved'?row.social_posts:row;<article class="social-card feed-post">
+ @if(p){<small>{{p.created_at | date:'MMM d, HH:mm'}}</small><p class="post-text">{{p.body}}</p>@if(p.image){<img class="post-photo" [src]="p.image" alt="Post photo" loading="lazy">}}
+ @else{<p>This post is no longer available to you.</p>}
+ @if(section()==='saved'){<button class="text-button" (click)="remove('saved_posts',row.post_id)" [disabled]="busy()">Remove from saved</button>}@else{<button class="text-button" (click)="remove('social_posts',row.id)" [disabled]="busy()">Delete my post</button>}
+ </article>}
+ @if(!rows().length&&!busy()&&!error()){<p class="account-empty">{{section()==='posts'?'Your posts will appear here. Create your first post on Home.':'Save posts from Home to keep them here.'}}</p>}
+}
+@if(section()==='groups'){
+ <button class="primary" (click)="newGroup.emit()">＋ Create a group</button>
+ @for(group of groupList();track group.id){<button class="account-group" (click)="openGroup.emit(group)"><span>♧</span><strong>{{group.title}}</strong><small>{{group.owner===me()?'You are the owner':'Member'}}</small><span>›</span></button>}@empty{<p class="account-empty">Your group conversations will appear here.</p>}
+}
+@if(section()==='books'){
+ <p class="muted">Manage your book listings here. The public marketplace is not live yet.</p>
+ @if(!editing()){<button class="primary" (click)="newBook()" [disabled]="busy()">＋ Add book listing</button>}
+ @if(editing()){<form class="profile-form" (ngSubmit)="saveBook()"><label>Book title<input name="title" [(ngModel)]="book.title" maxlength="120" required></label><label>Author<input name="author" [(ngModel)]="book.author" maxlength="120"></label><label>Price<input name="price" type="number" min="0" max="99999999.99" step="0.01" [(ngModel)]="book.price" required></label><label>Currency<select name="currency" [(ngModel)]="book.currency"><option>SEK</option><option>EUR</option><option>USD</option><option>RUB</option></select></label><label>Condition<select name="condition" [(ngModel)]="book.condition"><option>Like new</option><option>Good</option><option>Used</option></select></label><label>Description<textarea name="description" [(ngModel)]="book.description" maxlength="1000" rows="3"></textarea></label><label>Status<select name="status" [(ngModel)]="book.status"><option value="available">Available</option><option value="sold">Sold</option></select></label><button class="primary" [disabled]="busy()">Save listing</button><button class="text-button" type="button" (click)="editing.set(false)" [disabled]="busy()">Cancel</button></form>}
+ @for(book of rows();track book.id){<article class="social-card book-row"><h3>{{book.title}}</h3><p>{{book.author}}</p><strong>{{book.price}} {{book.currency}}</strong><p class="muted">{{book.condition}} · {{book.status==='sold'?'Sold':'Available'}}</p><p class="post-text">{{book.description}}</p><button class="text-button" (click)="editBook(book)" [disabled]="busy()">Edit</button><button class="text-button" (click)="remove('book_listings',book.id)" [disabled]="busy()">Delete</button></article>}
+ @if(!rows().length&&!busy()&&!editing()&&!error()){<p class="account-empty">No book listings yet.</p>}
+}
+@if(section()==='settings'){
+ <p class="muted">Preferences for this browser or device.</p><label class="setting-row"><input type="checkbox" [(ngModel)]="enter" (change)="settings()"><span>Press Enter to send messages<small>Turn off to use Enter for a new line.</small></span></label><label class="setting-row"><input type="checkbox" [(ngModel)]="remember" (change)="settings()"><span>Remember my email<small>Passwords are never saved by this setting.</small></span></label><p class="muted">Interface language: English</p>
+}
+@if(section()==='help'){
+ <details open><summary>How do I add a friend?</summary><p>Open People, search their username, and send a request. Messaging starts once they accept.</p></details><details><summary>Who can see my posts and stories?</summary><p>You and your accepted contacts. Stories disappear from view after 24 hours. Saved posts remain subject to the original access rules.</p></details><details><summary>Having trouble signing in?</summary><p>Use Sign in for an existing account. If you registered with Google, choose Continue with Google. Email confirmation is for a new email account.</p></details><details><summary>How do I report a problem?</summary><p>Send the person who invited you a screenshot, what you expected, and the steps that caused the problem. Never include passwords or sign-in links. In-app support messaging is not available yet.</p></details>
+}
+@if(busy()){<p role="status">Loading…</p>}@if(more()){<button class="text-button" (click)="load(true)" [disabled]="busy()">Load more</button>}
+}
+</section>

@@ -9,6 +9,7 @@ const friends:any[]=[{id:'f1',sender:'alice',recipient:'bob',status:'accepted'},
 const messages:any[]=[{id:1,conversation_id:'direct',sender_id:'bob',body:'Hey! Are we meeting at the library tomorrow?',created_at:'2026-11-11T10:01:00Z'},{id:2,conversation_id:'direct',sender_id:'alice',body:'Yes! Let’s grab a coffee first ☕',created_at:'2026-11-11T10:02:00Z'}];
 const posts:any[]=[{id:'demo-post',author_id:'bob',kind:'post',body:'Looking for a study buddy for next week. Coffee at the library?',image:'',created_at:new Date().toISOString()},{id:'demo-story',author_id:'carol',kind:'story',body:'A good day for new ideas ✨',image:'',created_at:new Date().toISOString()}];
 function socialQuery(){let kind='post';const q:any={select:()=>q,eq:(key:string,v:string)=>{if(key==='kind')kind=v;return q;},gt:()=>q,order:()=>q,or:()=>q,limit:async()=>({data:structuredClone(posts.filter(p=>p.kind===kind))}),insert:async(p:any)=>{posts.unshift({...p,author_id:'alice',created_at:new Date().toISOString()});return {};},delete:()=>({eq:(_:string,id:string)=>({eq:async()=>{const at=posts.findIndex(p=>p.id===id);if(at>=0)posts.splice(at,1);return {};}})})};return q;}
+if(new URLSearchParams(location.search).has('empty'))messages.length=0;
 class FixtureApi {
  client:any={
   auth:{getSession:async()=>({data:{session:{user:{id:'alice'}}}}),onAuthStateChange:()=>{},signOut:async()=>({})},

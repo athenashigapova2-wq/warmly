@@ -1,10 +1,12 @@
+import {Account} from './account';
+import {firstHello} from './chat-utils';
 import {Social} from './social';
 import { Component, inject, signal, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
 import { authFeedback, rememberedEmail, rememberEmail, restoreAuth } from './auth-utils';
-@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social],templateUrl:'./app.html'})
+@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
   api = inject(MessengerApi);
@@ -12,6 +14,9 @@ export class App {
   busy = signal(false); sending = signal(false); error = signal(''); notice = signal(''); online = signal(true);
   me = signal(''); profiles = signal<Profile[]>([]); chats = signal<Chat[]>([]);
   friendships = signal<Friendship[]>([]); memberships = signal<Membership[]>([]); messages = signal<Message[]>([]);
+  historyLoaded=signal(false); enterToSend=true;
+  hello(){return firstHello(this.name,this.active()?.kind,this.historyLoaded(),this.messages().length,this.draft);}
+  suggestHello(){const hello=this.hello();if(hello)this.draft=hello;}
   active = signal<Chat|null>(null); view = signal<'home'|'profile'|'chats'|'people'|'group'>('home'); details = signal(false);
   results = signal<Profile[]>([]); searched = signal(false); hasOlder = signal(false);
   welcomeSeen=signal(false); showEmail=signal(false); retryIn=signal(0); canResend=signal(false); configLoading=signal(true);
@@ -23,6 +28,7 @@ export class App {
   private retry?: {chatId:string; body:string; clientId:string};
   constructor() { void this.initialize(); }
   async initialize() {
+    try {this.enterToSend=localStorage.getItem('warmly.enter-to-send')!=='false';}catch{}
     this.email=rememberedEmail(localStorage);
     if(this.email){this.welcomeSeen.set(true);this.showEmail.set(true);this.signup=false;}
     const until=Number(sessionStorage.getItem('warmly.auth.retry-until') || 0);
@@ -135,13 +141,14 @@ export class App {
   toggle(id:string) {this.selected=this.selected.includes(id)?this.selected.filter(x=>x!==id):[...this.selected,id];}
   createGroup() {void this.run(async()=>{const r=await this.api.rpc('group',{title:this.groupName,members:this.selected});await this.refresh();this.groupName='';this.selected=[];await this.open(this.chats().find(c=>c.id===r.id)!);});}
   async open(chat:Chat) {
-    if(!chat)return;this.historyVersion++;this.active.set(chat);this.messages.set([]);this.draft='';this.retry=undefined;this.details.set(false);this.view.set('chats');
+    if(!chat)return;this.historyVersion++;this.historyLoaded.set(false);this.active.set(chat);this.messages.set([]);this.draft='';this.retry=undefined;this.details.set(false);this.view.set('chats');
     try {await this.history(false,true);}catch(e){this.error.set((e as Error).message);}
   }
   async history(older=false,initial=false) {
     const chat=this.active(); if(!chat)return;const version=this.historyVersion;
     const rows:Message[]=await this.api.rpc('history',{chatId:chat.id,...(older?{before:this.messages()[0]?.id}:{})});
     if(version!==this.historyVersion || this.active()?.id!==chat.id)return;
+    this.historyLoaded.set(true);
     const el=this.timeline?.nativeElement;const stick=initial || (!!el && el.scrollHeight-el.scrollTop-el.clientHeight<90);
     const oldHeight=el?.scrollHeight || 0;const oldTop=el?.scrollTop || 0;
     this.messages.update(items=>[...new Map([...items,...rows].map(m=>[m.id,m])).values()].sort((a,b)=>a.id-b.id));
@@ -160,7 +167,7 @@ export class App {
       setTimeout(()=>{const el=this.timeline?.nativeElement;if(el)el.scrollTop=el.scrollHeight;});
     }catch(e){this.error.set((e as Error).message);}finally{this.sending.set(false);}
   }
-  keydown(e:KeyboardEvent){if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();void this.send();}}
+  keydown(e:KeyboardEvent){if(this.enterToSend&&e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();void this.send();}}
   back(){this.active.set(null);this.historyVersion++;this.messages.set([]);this.details.set(false);}
 }
 

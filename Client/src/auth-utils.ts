@@ -35,10 +35,10 @@ export function oauthCallback(raw: string, expected: string) {
 
 // Remember only the address. Passwords remain under Supabase/browser control.
 export function rememberedEmail(storage: Pick<Storage,'getItem'>): string {
-  try {return storage.getItem('warmly.auth.email') || '';} catch {return '';}
+  try {return storage.getItem('warmly.remember-email')==='false'?'':storage.getItem('warmly.auth.email') || '';} catch {return '';}
 }
-export function rememberEmail(storage: Pick<Storage,'setItem'>, email:string) {
-  try {if(email.trim())storage.setItem('warmly.auth.email',email.trim());} catch {}
+export function rememberEmail(storage: Pick<Storage,'setItem'|'getItem'>, email:string) {
+  try {if(email.trim()&&storage.getItem('warmly.remember-email')!=='false')storage.setItem('warmly.auth.email',email.trim());} catch {}
 }
 export async function restoreAuth(auth:{getSession:()=>Promise<any>}, callback:()=>Promise<unknown>) {
   let callbackError:unknown;
