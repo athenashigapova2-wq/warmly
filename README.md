@@ -39,4 +39,4 @@ See `docs/ANDROID.md`. Public credentials only are permitted in the build. This 
 
 ## Deployment
 
-`npm run build` produces `dist/warmly/browser`, which can be served by any HTTPS static web host outside OpenAI. No Node backend or secret environment variables are required for production. Supabase stores all new accounts, friendships, groups and messages. No automatic deployment is configured.
+`npm run build` produces `dist/warmly/browser`, which can be served by any HTTPS static web host outside OpenAI. No Node backend or secret environment variables are required for production. Supabase stores all new accounts, friendships, groups and messages. For Vercel deployment, follow [the setup guide](docs/VERCEL.md). Once connected to GitHub, Vercel can rebuild on pushes to main.

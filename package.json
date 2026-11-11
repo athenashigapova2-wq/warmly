@@ -14,7 +14,8 @@
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
     "android:apk": "npm run android:sync && node scripts/android-build.mjs",
-    "configure": "node scripts/configure.mjs"
+    "configure": "node scripts/configure.mjs",
+    "build:vercel": "node scripts/configure-vercel.mjs --write && npm run build"
   },
   "dependencies": {
     "@angular/common": "21.2.26",
