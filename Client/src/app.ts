@@ -1,9 +1,10 @@
+import {Social} from './social';
 import { Component, inject, signal, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
 import { authFeedback } from './auth-utils';
-@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe],templateUrl:'./app.html'})
+@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
   api = inject(MessengerApi);
@@ -11,9 +12,9 @@ export class App {
   busy = signal(false); sending = signal(false); error = signal(''); notice = signal(''); online = signal(true);
   me = signal(''); profiles = signal<Profile[]>([]); chats = signal<Chat[]>([]);
   friendships = signal<Friendship[]>([]); memberships = signal<Membership[]>([]); messages = signal<Message[]>([]);
-  active = signal<Chat|null>(null); view = signal<'chats'|'people'|'group'>('chats'); details = signal(false);
+  active = signal<Chat|null>(null); view = signal<'home'|'profile'|'chats'|'people'|'group'>('home'); details = signal(false);
   results = signal<Profile[]>([]); searched = signal(false); hasOlder = signal(false);
-  showEmail=signal(false); retryIn=signal(0); canResend=signal(false); configLoading=signal(true);
+  welcomeSeen=signal(false); showEmail=signal(false); retryIn=signal(0); canResend=signal(false); configLoading=signal(true);
   private cooldownTimer?:ReturnType<typeof setTimeout>;
   private nativeReturn=Promise.resolve();
   url = ''; key = ''; email = ''; password = ''; signup = false; name = ''; username = '';
@@ -92,7 +93,7 @@ export class App {
   reset() {
     this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
     this.profiles.set([]); this.friendships.set([]); this.chats.set([]); this.memberships.set([]);
-    this.results.set([]); this.query=''; this.draft=''; this.retry=undefined; this.selected=[]; this.me.set(''); this.stage.set('auth');this.view.set('chats');this.details.set(false);this.searched.set(false);
+    this.results.set([]); this.query=''; this.draft=''; this.retry=undefined; this.selected=[]; this.me.set(''); this.stage.set('auth');this.view.set('home');this.details.set(false);this.searched.set(false);
   }
   logout() { void this.run(async()=>{ const {error}=await this.api.client.auth.signOut({scope:'local'}); if(error) throw error; this.reset(); }); }
   async refresh() {
@@ -101,7 +102,7 @@ export class App {
     const ids = [...new Set([this.me(),...friends.flatMap(f=>[f.sender,f.recipient]),...members.map(m=>m.user_id)])];
     const {data,error}=await this.api.client.from('profiles').select('*').in('id',ids);
     if(error) throw error; if(generation!==this.epoch) return;
-    this.profiles.set(data as Profile[]); this.friendships.set(friends); this.memberships.set(members);
+    this.profiles.set(data as Profile[]); const own=data.find(p=>p.id===this.me());if(own){this.name=own.name;this.username=own.username;} this.friendships.set(friends); this.memberships.set(members);
     this.chats.set(chats.sort((a,b)=>b.created_at.localeCompare(a.created_at)));
     const active=this.active();
     if(active && !chats.some(c=>c.id===active.id)) {this.active.set(null);this.messages.set([]);this.historyVersion++;}

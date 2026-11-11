@@ -1,4 +1,6 @@
-@if (stage() !== 'app') {
+@if(stage()==='auth' && !welcomeSeen()){
+<main class="landing"><a class="brand" href="/">✳ Warmly</a><div class="landing-grid"><section><div class="eyebrow">YOUR CAMPUS. YOUR PEOPLE.</div><h1>The student network<br>for <em>university life.</em></h1><p>Meet students, find study buddies,<br>and grow together.</p><button class="primary" (click)="welcomeSeen.set(true);signup=true">Get started →</button><button class="text-button" (click)="welcomeSeen.set(true);signup=false">I already have an account</button></section><img src="welcome-students.png" alt="Three university students sharing a laptop on campus"></div><footer>A little warmth. A world of connections.</footer></main>
+} @else if (stage() !== 'app') {
 <main class="welcome">
   <div class="welcome-copy"><a class="brand" href="/">✳ Warmly</a><div class="eyebrow">YOUR CAMPUS. YOUR PEOPLE.</div><h1>Great connections.<br><em>Start with hello.</em></h1><p>Find your people. Make a group.<br>Keep the conversation going.</p></div>
   <section class="join-card">
@@ -26,11 +28,14 @@
 </main>
 } @else {
 <div class="messenger-shell">
-  <aside class="rail"><a class="brand" href="/">✳ <span>Warmly</span></a><nav aria-label="Main navigation"><button [class.current]="view()==='chats'" (click)="view.set('chats')">◌ <span>Messages</span></button><button [class.current]="view()==='people'" (click)="view.set('people')">♧ <span>People</span>@if(incoming().length){<b>{{incoming().length}}</b>}</button><button [class.current]="view()==='group'" (click)="view.set('group')">＋ <span>New group</span></button></nav><div class="identity"><span class="avatar">{{name[0]}}</span><div><strong>{{name}}</strong><small>&#64;{{username}}</small></div></div><button class="text-button" (click)="logout()" [disabled]="busy()">Sign out</button></aside>
+  <aside class="rail"><a class="brand" href="/">✳ <span>Warmly</span></a><nav aria-label="Main navigation"><button [class.current]="view()==='home'" (click)="view.set('home')">⌂ <span>Home</span></button><button [class.current]="view()==='chats'" (click)="view.set('chats')">◌ <span>Messages</span></button><button [class.current]="view()==='people'" (click)="view.set('people')">♧ <span>People</span>@if(incoming().length){<b>{{incoming().length}}</b>}</button><button [class.current]="view()==='group'" (click)="view.set('group')">＋ <span>New group</span></button><button [class.current]="view()==='profile'" (click)="view.set('profile')">◎ <span>Profile</span></button></nav><div class="identity"><span class="avatar">{{name[0]}}</span><div><strong>{{name}}</strong><small>&#64;{{username}}</small></div></div><button class="text-button" (click)="logout()" [disabled]="busy()">Sign out</button></aside>
   <main class="messenger-main">
-    <header class="messenger-header"><div><div class="eyebrow">STAY CLOSE, FEEL WARMLY</div><h1>{{view()==='people'?'Your people':view()==='group'?'A space for your circle':'Messages'}}<em>.</em></h1></div><span class="beta">{{online()?'EARLY ACCESS':'RECONNECTING…'}}</span></header>
+    <header class="messenger-header"><div><div class="eyebrow">STAY CLOSE, FEEL WARMLY</div><h1>{{view()==='home'?'Home':view()==='profile'?'Your profile':view()==='people'?'Your people':view()==='group'?'A space for your circle':'Messages'}}<em>.</em></h1></div><span class="beta">{{online()?'EARLY ACCESS':'RECONNECTING…'}}</span></header>
     @if(error()){<p class="error banner" role="alert">{{error()}} <button class="text-button" (click)="error.set('')">Dismiss</button></p>}
-    @if(view()==='people') {
+    @if(view()==='home' || view()==='profile'){
+<warmly-social [me]="me()" [mode]="view()==='profile'?'profile':'home'" [profiles]="profiles()" (saved)="refresh()" />
+@if(view()==='profile'){<button class="text-button" (click)="logout()" [disabled]="busy()">Sign out</button>}
+} @else if(view()==='people') {
       <section class="people-page">
         <form class="search-form" (ngSubmit)="search()"><label class="sr-only" for="search">Search by username</label><input id="search" name="search" [(ngModel)]="query" placeholder="Find someone by username…" minlength="2" maxlength="24" required><button class="primary" [disabled]="busy()">Search</button></form>
         @if(searched()) {<h2>Search results</h2>@for(p of results();track p.id){<div class="person-row"><span class="avatar">{{p.name[0]}}</span><div><strong>{{p.name}}</strong><small>&#64;{{p.username}}</small></div>@if(!relation(p.id)){<button (click)="action('request',{userId:p.id})" [disabled]="busy()">Add friend</button>}@else if(relation(p.id)?.status==='accepted'){<button (click)="direct(p.id)" [disabled]="busy()">Message</button>}@else{<span class="tag">Request pending</span>}</div>}@empty{<p class="muted">No one found. Try another username.</p>}}

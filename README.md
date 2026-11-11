@@ -25,6 +25,12 @@ Open http://localhost:3000. For Angular live editing use `npm run dev` at http:/
 
 ## Features
 
+Social feed setup: run `supabase/migrations/202611110003_social.sql` after the messenger migration. See [rollout details](docs/SOCIAL.md).
+
+- Campus welcome screen with an original reference-inspired photo.
+- Contacts-only text/photo feed, 24-hour stories, own-content deletion.
+- Editable name, username, university, program, bio and interests.
+
 - Google OAuth with PKCE, optional email/password, and unique usernames.
 - Username search, friend requests, accept, decline, cancel.
 - One direct conversation per friend pair, persistent history.

@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as NativeApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { NATIVE_CALLBACK, oauthCallback, publicConfig } from './auth-utils';
-export interface Profile { id: string; username: string; name: string }
+export interface Profile { id: string; username: string; name: string; university?:string; program?:string; bio?:string; interests?:string }
 export interface Chat { id: string; kind: 'direct' | 'group'; title: string; owner: string; created_at: string }
 export interface Message { id: number; conversation_id: string; sender_id: string; body: string; created_at: string }
 export interface Friendship { id: string; sender: string; recipient: string; status: 'pending' | 'accepted' }
