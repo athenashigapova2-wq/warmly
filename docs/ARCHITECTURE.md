@@ -1,24 +1,11 @@
-# Архитектура
+# Architecture
 
-Angular → HTTP /api → Express → MongoDB
+Angular UI → supabase-js → Supabase Auth / PostgreSQL.
 
-Angular ↔ Socket.IO ↔ Node.js
+Web distribution: static files. Android: Capacitor 8 packages the same static files. No OpenAI hosting and no trusted API key in either client.
 
-REST обслуживает регистрацию, вход, профили, список диалогов и историю.
-Socket.IO доставляет новые сообщения участникам конкретного диалога.
-Глобальный io.emit из статьи допустим только для тестовой общей комнаты.
+Tables: profiles (public name/username), friendships (pending/accepted), conversations (direct/group), conversation_members, messages. Auth identity comes from auth.uid(). RLS protects all reads; direct table writes are denied. The messenger SQL function handles validated writes in transactions. It validates friendship before creating a direct chat or adding a group member, owner rights for group changes, and membership before reading/sending. Direct pairs and client message IDs are unique. The is_chat_member helper avoids recursive membership policies.
 
-## Планируемые сущности
+Polling every 2.5 seconds refreshes conversations and the selected chat. History uses id-based pagination of 50 messages. Retrying an unconfirmed send reuses its client ID. Old guest messages remain in warmly_messages; no guest identity is treated as an authenticated account.
 
-- User: id, name, email, passwordHash, university, program, year, interests.
-- Conversation: id, type (direct/group), title, memberIds, createdAt.
-- Message: id, conversationId, senderId, text, createdAt, clientMessageId.
-
-Пароли не хранятся в открытом виде. Отправитель определяется серверной сессией,
-а не полем клиентского запроса. Сервер проверяет членство перед чтением истории,
-присоединением к комнате и отправкой сообщения. Сообщение сначала сохраняется,
-затем подтверждается клиенту и доставляется участникам. clientMessageId используется
-для защиты от дублей при повторной отправке.
-
-Секреты находятся в локальном .env, исключённом из Git. В репозиторий добавляются
-только шаблоны конфигурации. Производственный деплой не входит в текущий этап.
+Before production: abuse protection, account recovery, removal/blocking, membership history semantics, attachment storage policies, push delivery, and explicit retention policy. Group members currently see the group's full history including messages before joining. Leaving removes future server access but cannot erase content a member already viewed.

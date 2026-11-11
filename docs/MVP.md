@@ -1,29 +1,7 @@
-# План MVP
+# Warmly MVP
 
-## Первый рабочий срез
+Implemented in this slice: Supabase email/password accounts, unique usernames, friend requests and acceptance, direct conversations, groups, member-only messages and paginated history. English responsive Angular UI shared with Capacitor Android. Storage is Supabase, not MongoDB or D1. No OpenAI hosting integration remains.
 
-1. Angular-клиент и Express-сервер, локальный запуск одной командой.
-2. Общая учебная комната и отправка сообщений через Socket.IO между двумя браузерами.
-3. Адаптивный интерфейс Warmly: светлая оболочка, фиолетовый акцент, тёмная область чата.
-4. Пустые состояния, ошибка подключения и повторное подключение.
+Next: password recovery, profile editing and university details, blocking/removing contacts, group ownership transfer, attachments and push notifications. Calls and end-to-end encryption need separate design. Campus feed, study buddy, events and marketplace follow the core messenger.
 
-## Следующий срез
-
-- Регистрация, вход и выход; хеширование паролей и серверные сессии.
-- Профиль: имя, университет, программа, курс, интересы.
-- Поиск студентов и создание личного диалога.
-- Групповые беседы с проверкой членства.
-- Хранение истории в MongoDB, пагинация и время сообщений.
-- Проверка доступа на REST-запросах и Socket.IO-событиях.
-
-## После мессенджера
-
-Лента, study buddy, группы, события и объявления о книгах из первого макета.
-Менторство, Q&A, материалы, вакансии, карта кампуса, поиск соседей,
-достижения, языковой обмен, опросы и скидки — отдельный будущий этап.
-
-## Проверка готовности первого среза
-
-Два клиента видят отправленные сообщения без перезагрузки. Пустой и слишком длинный
-текст отклоняется сервером. HTML в сообщении отображается как текст. Разрыв связи
-виден пользователю. Интерфейс помещается на мобильном экране.
+Acceptance: apply the new SQL migration in the real project, register two verified accounts, accept friendship, exchange messages and create a group. Local PostgreSQL contract/access tests and fixture-based desktop/mobile UI checks are in tests; they do not substitute for real Supabase and physical-phone tests.

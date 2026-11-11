@@ -1,4 +1,3 @@
 # Client
 
-Angular 21, standalone-компонент и signals. Интерфейс и стили находятся в `src`.
-Запуск из корня репозитория: `npm run dev` (порт 4200) или `npm start` (порт 3000).
+Angular standalone messenger. Direct Supabase access through transport.ts. Use npm run dev from the repository root. UI language: English. Responsive desktop layout and mobile chat/list navigation share the same source with Capacitor Android.

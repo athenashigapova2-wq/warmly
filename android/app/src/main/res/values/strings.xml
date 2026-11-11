@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Warmly</string>
+    <string name="title_activity_main">Warmly</string>
+    <string name="package_name">app.warmly.messenger</string>
+    <string name="custom_url_scheme">app.warmly.messenger</string>
+</resources>

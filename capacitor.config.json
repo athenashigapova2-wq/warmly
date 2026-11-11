@@ -1,0 +1,6 @@
+{
+  "appId": "app.warmly.messenger",
+  "appName": "Warmly",
+  "webDir": "dist/warmly/browser",
+  "server": { "androidScheme": "https" }
+}

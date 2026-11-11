@@ -19,7 +19,14 @@
             "styles": [
               "Client/src/styles.css"
             ],
-            "outputPath": "dist/warmly"
+            "outputPath": "dist/warmly",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "Client/public",
+                "output": "/"
+              }
+            ]
           },
           "configurations": {
             "production": {
@@ -40,6 +47,12 @@
             "development": {
               "optimization": false,
               "sourceMap": true,
+              "outputHashing": "none"
+            },
+            "qa": {
+              "browser": "tests/ui-main.ts",
+              "tsConfig": "tests/tsconfig.ui.json",
+              "optimization": false,
               "outputHashing": "none"
             }
           },

@@ -7,12 +7,13 @@
     "node": ">=24.15.0"
   },
   "scripts": {
-    "start": "npm run build && node --env-file-if-exists=.env Server/index.js",
-    "dev": "concurrently -k \"node --env-file-if-exists=.env --watch Server/index.js\" \"ng serve --host 127.0.0.1\"",
-    "build": "ng build && node Hosting/build.mjs",
-    "test": "node --test tests/*.test.js",
-    "test:browser": "node tests/browser.mjs",
-    "preview:hosted": "node --env-file-if-exists=.env Hosting/preview.mjs"
+    "start": "npm run build && node Server/index.js",
+    "dev": "ng serve --host 127.0.0.1",
+    "build": "ng build",
+    "test": "node --test tests/messenger.test.js",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:apk": "npm run android:sync && node scripts/android-build.mjs"
   },
   "dependencies": {
     "@angular/common": "21.2.26",
@@ -20,17 +21,19 @@
     "@angular/core": "21.2.26",
     "@angular/forms": "21.2.26",
     "@angular/platform-browser": "21.2.26",
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@supabase/supabase-js": "^2.119.0",
     "express": "^5.1.0",
     "rxjs": "^7.8.2",
-    "socket.io": "4.8.4",
-    "socket.io-client": "4.8.4",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@angular/build": "21.0.0",
     "@angular/cli": "21.0.0",
     "@angular/compiler-cli": "21.2.26",
-    "concurrently": "^9.2.1",
+    "@capacitor/cli": "^8.6.0",
+    "@electric-sql/pglite": "^0.5.16",
     "playwright": "1.56.1",
     "typescript": "~5.9.3"
   },

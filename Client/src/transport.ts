@@ -1,94 +1,28 @@
-
-export const hosted = true;
-type Listener = (...args: any[]) => void;
-type Reply = (error: Error | null, result?: any) => void;
-interface Transport {
-  on(event: string, listener: Listener): unknown;
-  connect(): unknown;
-  disconnect(): unknown;
-  timeout(ms: number): { emit(event: string, payload: unknown, reply: Reply): unknown };
-}
-
-// Both runtimes poll the same Supabase-backed API.
-class HostedTransport implements Transport {
-  private listeners = new Map<string, Listener[]>();
-  private token = '';
-  private active = false;
-  private online = false;
-  private generation = 0;
-  private seen = new Set<string>();
-  private timer?: ReturnType<typeof setTimeout>;
-  on(event: string, listener: Listener) {
-    this.listeners.set(event, [...(this.listeners.get(event) || []), listener]);
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+export interface Profile { id: string; username: string; name: string }
+export interface Chat { id: string; kind: 'direct' | 'group'; title: string; owner: string; created_at: string }
+export interface Message { id: number; conversation_id: string; sender_id: string; body: string; created_at: string }
+export interface Friendship { id: string; sender: string; recipient: string; status: 'pending' | 'accepted' }
+export interface Membership { conversation_id: string; user_id: string }
+export class MessengerApi {
+  client!: SupabaseClient;
+  configure(url: string, key: string) {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || !parsed.hostname.endsWith('.supabase.co') || parsed.pathname !== '/' || parsed.search || parsed.hash || parsed.username || parsed.password) throw new Error('Use the HTTPS Project URL from Supabase.');
+    let publicKey = key.startsWith('sb_publishable_');
+    if (key.startsWith('eyJ')) { try { publicKey = JSON.parse(atob(key.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).role === 'anon'; } catch { publicKey = false; } }
+    if (!publicKey) throw new Error('Use a publishable key or the legacy anon key. Never use a secret or service_role key.');
+    this.client = createClient(parsed.origin, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+    localStorage.setItem('warmly.public-config', JSON.stringify({url: parsed.origin,key}));
   }
-  private dispatch(event: string, ...args: any[]) {
-    this.listeners.get(event)?.forEach(listener => listener(...args));
+  async rpc(action: string, payload = {}): Promise<any> {
+    const {data,error} = await this.client.rpc('messenger', {action,payload});
+    if (error) throw new Error(error.message.includes('Could not find') ? 'Apply the messenger SQL migration in Supabase first.' : error.message);
+    return data;
   }
-  connect() {
-    if (this.active) return;
-    this.active = true;
-    this.generation++;
-    this.dispatch('connect');
+  async table<T>(name: string): Promise<T[]> {
+    const {data,error} = await this.client.from(name).select('*');
+    if (error) throw new Error(error.message);
+    return data as T[];
   }
-  disconnect() {
-    const token = this.token;
-    this.active = false; this.online = false; this.token = ''; this.generation++;
-    clearTimeout(this.timer);
-    if (token) void fetch('/api/chat/session', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` }, keepalive: true }).catch(() => {});
-    this.dispatch('disconnect');
-  }
-  private async request(path: string, method = 'GET', payload?: unknown, timeout = 8000) {
-    const response = await fetch(`/api/chat/${path}`, {
-      method, cache: 'no-store', signal: AbortSignal.timeout(timeout),
-      headers: { 'Content-Type': 'application/json', ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) },
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-    });
-    const result = await response.json();
-    if (!response.ok) throw Object.assign(new Error(result.error || 'Something went wrong. Please try again.'), { status: response.status });
-    return result;
-  }
-  timeout(ms: number) {
-    return { emit: (event: string, payload: unknown, reply: Reply) => {
-      const generation = this.generation;
-      const path = event === 'join' ? 'session' : 'messages';
-      void this.request(path, 'POST', payload, Math.max(ms, 8000)).then(result => {
-        if (!this.active || generation !== this.generation) return;
-        if (event === 'join') {
-          this.token = result.token; this.online = true;
-          this.seen = new Set(result.messages.map((message: any) => message.id));
-          reply(null, result); this.dispatch('presence', result.members); this.schedule();
-        } else {
-          this.seen.add(result.message.id); this.dispatch('message:new', result.message); reply(null, result);
-        }
-      }).catch((error: Error) => {
-        if (this.active && generation === this.generation) reply(null, { error: error.message });
-      });
-    } };
-  }
-  private schedule() {
-    clearTimeout(this.timer);
-    if (this.active && this.token) this.timer = setTimeout(() => void this.poll(), 1500);
-  }
-  private async poll() {
-    const generation = this.generation;
-    try {
-      const result = await this.request('state');
-      if (!this.active || generation !== this.generation) return;
-      if (!this.online) { this.online = true; this.dispatch('recovered'); }
-      this.dispatch('presence', result.members);
-      for (const message of result.messages) if (!this.seen.has(message.id)) this.dispatch('message:new', message);
-      this.seen = new Set(result.messages.map((message: any) => message.id));
-    } catch (error) {
-      if (!this.active || generation !== this.generation) return;
-      if (this.online) { this.online = false; this.dispatch('disconnect'); }
-      if ((error as { status?: number }).status === 401) {
-        this.token = ''; this.dispatch('connect'); return;
-      }
-    }
-    this.schedule();
-  }
-}
-
-export function createChatTransport(): Transport {
-  return new HostedTransport();
 }
