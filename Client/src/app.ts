@@ -2,6 +2,7 @@ import { Component, inject, signal, ViewChild, ElementRef } from '@angular/core'
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
+import { authFeedback } from './auth-utils';
 @Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
@@ -12,17 +13,25 @@ export class App {
   friendships = signal<Friendship[]>([]); memberships = signal<Membership[]>([]); messages = signal<Message[]>([]);
   active = signal<Chat|null>(null); view = signal<'chats'|'people'|'group'>('chats'); details = signal(false);
   results = signal<Profile[]>([]); searched = signal(false); hasOlder = signal(false);
+  showEmail=signal(false); retryIn=signal(0); canResend=signal(false); configLoading=signal(true);
+  private cooldownTimer?:ReturnType<typeof setTimeout>;
+  private nativeReturn=Promise.resolve();
   url = ''; key = ''; email = ''; password = ''; signup = false; name = ''; username = '';
   query = ''; groupName = ''; selected: string[] = []; draft = ''; addId = '';
   private timer?: ReturnType<typeof setTimeout>; private epoch = 0; private historyVersion = 0;
   private retry?: {chatId:string; body:string; clientId:string};
   constructor() { void this.initialize(); }
   async initialize() {
+    const until=Number(sessionStorage.getItem('warmly.auth.retry-until') || 0);
+    if(until>Date.now())this.cooldown(Math.ceil((until-Date.now())/1000));
     try {
-      let config = JSON.parse(localStorage.getItem('warmly.public-config') || 'null');
-      if (!config) { try { const r = await fetch('config.json'); if (r.ok) config = await r.json(); } catch {} }
+      let config;
+      // A bundled project config takes precedence. The cache supports existing test installs.
+      try { const r=await fetch('config.json',{cache:'no-store'}); if(r.ok)config=await r.json(); } catch {}
+      if(!config)config=JSON.parse(localStorage.getItem('warmly.public-config') || 'null');
       if (config?.url && config?.key) { this.url=config.url; this.key=config.key; await this.connect(); }
     } catch { this.stage.set('setup'); }
+    finally {this.configLoading.set(false);}
   }
   async run(task:()=>Promise<void>) {
     if (this.busy()) return; this.busy.set(true); this.error.set(''); this.notice.set('');
@@ -33,15 +42,43 @@ export class App {
     await this.run(async()=>{
       this.api.configure(this.url.trim(),this.key.trim()); this.stage.set('auth');
       this.api.client.auth.onAuthStateChange((event)=>{ if (event==='SIGNED_OUT') this.reset(); });
+      await this.api.finishOAuth(location.href);
       const {data} = await this.api.client.auth.getSession();
       if (data.session) { this.me.set(data.session.user.id); await this.loadAccount(); }
     });
+    if(this.api.client)await this.api.watchNativeCallback(url=>{
+      this.nativeReturn=this.nativeReturn.then(async()=>{
+        try {
+          if(!await this.api.finishOAuth(url))return;
+          const {data}=await this.api.client.auth.getSession();
+          if(data.session){this.me.set(data.session.user.id);await this.loadAccount();this.error.set('');this.notice.set('');}
+        }catch(e){this.error.set((e as Error).message);}
+      });
+    });
   }
-  authenticate() { void this.run(async()=>{
+  cooldown(seconds:number) {
+    const until=Date.now()+seconds*1000;sessionStorage.setItem('warmly.auth.retry-until',String(until));
+    clearTimeout(this.cooldownTimer);
+    const tick=()=>{this.retryIn.set(Math.max(0,Math.ceil((until-Date.now())/1000)));if(this.retryIn())this.cooldownTimer=setTimeout(tick,500);else sessionStorage.removeItem('warmly.auth.retry-until');};tick();
+  }
+  authError(error:any):never {
+    const feedback=authFeedback(error);if(feedback.retrySeconds)this.cooldown(feedback.retrySeconds);
+    if(error.code==='email_not_confirmed')this.canResend.set(true);
+    throw new Error(feedback.message);
+  }
+  google() {void this.run(async()=>{
+    try {await this.api.google();this.notice.set('Finish signing in in your browser, then return to Warmly.');}
+    catch(error){this.authError(error);}
+  });}
+  resend() {if(this.retryIn())return;void this.run(async()=>{
+    const {error}=await this.api.client.auth.resend({type:'signup',email:this.email.trim(),options:{emailRedirectTo:this.api.redirectUrl()}});
+    if(error)this.authError(error);this.cooldown(60);this.notice.set('If your account needs confirmation, a new email is on its way. Check your inbox and spam folder.');
+  });}
+  authenticate() { if(this.signup && this.retryIn())return;void this.run(async()=>{
     const credentials = {email:this.email.trim(),password:this.password};
-    const {data,error} = this.signup ? await this.api.client.auth.signUp(credentials) : await this.api.client.auth.signInWithPassword(credentials);
-    if (error) throw error; this.password='';
-    if (!data.session) { this.notice.set('Check your email to confirm your account, then come back and sign in.'); this.signup=false; return; }
+    const {data,error} = this.signup ? await this.api.client.auth.signUp({...credentials,options:{emailRedirectTo:this.api.redirectUrl()}}) : await this.api.client.auth.signInWithPassword(credentials);
+    if (error)this.authError(error); this.password='';
+    if (!data.session) { this.cooldown(60);this.canResend.set(true);this.notice.set('Check your email to confirm your account, then come back and sign in.'); this.signup=false; return; }
     this.me.set(data.session.user.id); await this.loadAccount();
   }); }
   async loadAccount() {

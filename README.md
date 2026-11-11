@@ -5,9 +5,9 @@ Student messenger for desktop web and Android. Angular shares its interface with
 ## Set up your existing Supabase project
 
 1. In SQL Editor run `supabase/migrations/202611110002_messenger.sql` once. The previous guest tables and their messages are preserved; they are not copied into private conversations.
-2. Enable Email sign-in under Authentication → Sign In / Providers. Keep email confirmation enabled. Configure Authentication → URL Configuration with your web address (`http://localhost:3000` during local tests); users confirm in their browser and then sign in to the app.
-3. Start the app. On its one-time setup screen enter Project URL and a **publishable** key (or legacy anon key). Do not enter a secret/service_role key. Configuration is stored only in that browser/app.
-4. Alternatively, copy `Client/public/config.example.json` to ignored `Client/public/config.json`, fill its public values and rebuild. This skips setup on web and Android. Only this public file is bundled; `.env` is not read by the build.
+2. Configure Google sign-in using [the manual guide](docs/GOOGLE_SIGN_IN.md). Email/password remains optional; keep email confirmation enabled.
+3. Run `npm run configure` in the VS Code terminal once and enter the Project URL and **publishable** key. It writes ignored `Client/public/config.json`. Rebuild with `npm start` or `npm run android:sync`.
+4. Public configuration is bundled into web and Android; users never enter it. Previously saved browser configuration remains a fallback. A fresh checkout needs configuration again; `.env` is not read.
 5. Create two accounts, confirm their emails, and choose different usernames. Search for the other username in People, send and accept a friend request. Message opens a direct chat; New group creates a group with accepted friends.
 
 Your old local `.env` is no longer needed by the new application. Do not copy it into `Client/public` or Android assets.
@@ -25,7 +25,7 @@ Open http://localhost:3000. For Angular live editing use `npm run dev` at http:/
 
 ## Features
 
-- Email/password accounts and unique usernames.
+- Google OAuth with PKCE, optional email/password, and unique usernames.
 - Username search, friend requests, accept, decline, cancel.
 - One direct conversation per friend pair, persistent history.
 - Groups of up to 50 members, owner adds accepted friends; non-owners can leave.

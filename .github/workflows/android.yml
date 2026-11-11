@@ -21,6 +21,12 @@ jobs:
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - run: npm ci
       - run: npm test
+      - name: Configure public Supabase connection
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          node --input-type=module -e "import {writeFileSync} from 'node:fs'; import {publicConfig} from './Client/src/auth-utils.ts'; writeFileSync('Client/public/config.json', JSON.stringify(publicConfig(process.env.SUPABASE_URL || '', process.env.SUPABASE_PUBLISHABLE_KEY || '')));"
       - run: npm run android:sync
       - run: chmod +x android/gradlew
       - run: ./gradlew assembleDebug --no-daemon

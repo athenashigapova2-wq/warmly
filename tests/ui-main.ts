@@ -17,6 +17,8 @@ class FixtureApi {
   })})
  };
  configure(){}
+ async finishOAuth(){return false;}
+ async watchNativeCallback(){}
  async table(name:string){return structuredClone(name==='friendships'?friends:name==='conversations'?chats:members);}
  async rpc(action:string,p:any={}){
   if(action==='history')return structuredClone(messages.filter(m=>m.conversation_id===p.chatId));
