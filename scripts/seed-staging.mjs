@@ -3,6 +3,7 @@ import {randomBytes} from 'node:crypto';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {stagingTarget} from './environment-policy.mjs';
 import {fixtureAccounts,fixtureRows} from './staging-fixtures.mjs';
+import {writeFixtures} from './write-fixtures.mjs';
 const ref=stagingTarget(process.env);
 if(process.env.CONFIRM_STAGING_REF!==ref)throw Error('Set CONFIRM_STAGING_REF to the staging project ref.');
 if(!process.env.STAGING_SUPABASE_SECRET_KEY)throw Error('Set the staging secret/service_role key locally only.');
@@ -29,5 +30,5 @@ for(const fixture of fixtureAccounts){
  }
  ids[fixture.slug]=user.id;
 }
-for(const [table,rows,onConflict] of fixtureRows(ids))await checked(client.from(table).upsert(rows,{onConflict}));
+await writeFixtures(client,fixtureRows(ids));
 console.log(`Seeded 7 synthetic accounts and fixtures. Existing passwords were not reset. Credentials: staging-local/accounts-${ref}.json (local only).`);
