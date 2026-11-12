@@ -1,5 +1,6 @@
 import {Market} from './market';
 import {Discover} from './discover';
+import {MemberProfile} from './member-profile';
 import {universityName} from './discover-utils';
 import {Events} from './events';
 import {AccountRole,RoleChoice,roleLabel} from './roles';
@@ -11,10 +12,14 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
 import { authFeedback, rememberedEmail, rememberEmail, restoreAuth } from './auth-utils';
-@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account,Market,Events,Discover],templateUrl:'./app.html'})
+@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account,Market,Events,Discover,MemberProfile],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
   api = inject(MessengerApi);
+  viewedProfile=signal('');
+  openPerson(id:string){if(!id)return;if(id===this.me()){this.openSection('profile');return;}this.error.set('');this.viewedProfile.set(id);}
+  openDirectProfile(){const other=this.chatMembers().find(p=>p.id!==this.me());if(other)this.openPerson(other.id);}
+  messageFromProfile(id:string){this.viewedProfile.set('');this.direct(id);}
   stage = signal<'setup'|'auth'|'profile'|'app'>('setup');
   busy = signal(false); sending = signal(false); error = signal(''); notice = signal(''); online = signal(true);
   me = signal(''); profiles = signal<Profile[]>([]); chats = signal<Chat[]>([]);
@@ -126,6 +131,7 @@ export class App {
     try{sessionStorage.removeItem('warmly.role-choice');}catch{} await this.loadAccount();
   }); }
   reset() {
+    this.viewedProfile.set('');
     this.accountRole.set(null);this.signup=false;this.canResend.set(false);this.password='';this.university='';this.name='';this.username='';this.welcomeSeen.set(true);this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
     this.profiles.set([]); this.friendships.set([]); this.chats.set([]); this.memberships.set([]);
     this.results.set([]); this.query=''; this.draft=''; this.retry=undefined; this.selected=[]; this.me.set(''); this.stage.set('auth');this.view.set('home');this.details.set(false);this.searched.set(false);

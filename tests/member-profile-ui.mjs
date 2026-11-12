@@ -1,0 +1,43 @@
+// Run against the QA build; all accounts and actions below are local fixtures.
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import express from 'express';
+import {chromium} from 'playwright';
+const app=express();app.use(express.static('dist/qa/browser'));
+const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
+let browser;
+try{
+ browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+ const url=`http://127.0.0.1:${server.address().port}/`;await mkdir('test-results',{recursive:true});
+ await page.goto(url);await page.getByRole('button',{name:/Discover/}).waitFor();
+ await page.screenshot({animations:'disabled',path:'test-results/depth-home-desktop.png',fullPage:true});
+ await page.getByRole('button',{name:'View profile of Lucas',exact:true}).click();
+ const dialog=page.getByRole('dialog');await dialog.getByRole('heading',{name:'Lucas',exact:true}).waitFor();
+ await dialog.getByText('Computer Science · Year 2',{exact:true}).waitFor();await dialog.getByText('Hiking',{exact:true}).waitFor();
+ assert.equal(await dialog.locator('input,textarea').count(),0,'Other members cannot edit this profile');
+ await page.screenshot({animations:'disabled',path:'test-results/member-profile-desktop.png'});
+ await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
+ assert.match(await page.evaluate(()=>document.activeElement.getAttribute('aria-label')),/View profile of Lucas/);
+ await page.getByRole('button',{name:/Discover/}).click();
+ const discover=page.locator('warmly-discover');await discover.getByRole('button',{name:'View profile of Noah',exact:true}).click();
+ await dialog.getByRole('heading',{name:'Noah',exact:true}).waitFor();await dialog.getByRole('button',{name:'＋ Add friend',exact:true}).click();
+ await dialog.getByText('✓ Friend request sent',{exact:true}).waitFor();await dialog.getByRole('button',{name:'Close profile'}).click();
+ await discover.getByRole('button',{name:'View profile of Emma',exact:true}).click();await dialog.getByRole('button',{name:'Accept friend request'}).click();
+ await dialog.getByText('✓ In your circle',{exact:true}).waitFor();await dialog.getByRole('button',{name:'Close profile'}).click();
+ await page.setViewportSize({width:390,height:844});await page.screenshot({animations:'disabled',path:'test-results/depth-discover-mobile.png',fullPage:true});
+ await discover.getByRole('button',{name:'View profile of Lucas',exact:true}).click();await dialog.getByText('Hiking',{exact:true}).waitFor();
+ await page.screenshot({animations:'disabled',path:'test-results/member-profile-mobile.png'});
+ assert.equal(await dialog.evaluate(d=>d.scrollWidth>d.clientWidth),false,'Profile overflows on mobile');
+ for(let i=0;i<6;i++)await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>!!document.activeElement.closest('dialog')),true,'Focus escaped modal');
+ await dialog.getByRole('button',{name:'Say hello ↗',exact:true}).click();await dialog.waitFor({state:'detached'});
+ await page.locator('.chat-heading').getByRole('button',{name:'Lucas ↗',exact:true}).waitFor();
+ await page.locator('.chat-heading').getByRole('button',{name:'Lucas ↗',exact:true}).click();await dialog.getByText('Hiking',{exact:true}).waitFor();
+ await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
+ await page.getByRole('button',{name:/Home/,exact:false}).first().click();await page.screenshot({animations:'disabled',path:'test-results/depth-home-mobile.png',fullPage:true});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.goto(url+'?profileError=1');await page.getByRole('button',{name:'View profile of Lucas',exact:true}).click();
+ await dialog.getByText('Could not load this profile. Please try again.').waitFor();await dialog.getByRole('button',{name:'Close profile'}).click();
+ assert.deepEqual(errors,[]);console.log('PASS: profile from feed/discovery/chat, data, request/accept/message, focus trap/restoration, mobile layout, error state.');
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

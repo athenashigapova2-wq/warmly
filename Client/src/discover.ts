@@ -5,7 +5,7 @@ import {literalLike,universityOptions} from './discover-utils';
 @Component({selector:'warmly-discover',standalone:true,imports:[FormsModule],templateUrl:'./discover.html'})
 export class Discover implements OnInit,OnDestroy {
  api=inject(MessengerApi);me=input.required<string>();friendships=input<Friendship[]>([]);working=input(false);
- request=output<string>();message=output<string>();accept=output<string>();
+ request=output<string>();message=output<string>();accept=output<string>();viewProfile=output<string>();
  universities=signal<string[]>([]);selected=signal('');people=signal<Profile[]>([]);
  loading=signal(false);directoryLoading=signal(false);more=signal(false);moreUniversities=signal(false);error=signal('');directoryError=signal('');
  campusQuery='';usernameQuery='';private campusOffset=0;private peopleOffset=0;private generation=0;private directoryGeneration=0;private alive=true;

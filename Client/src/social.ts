@@ -6,7 +6,7 @@ import {MessengerApi,Profile} from './transport';
 interface Post {id:string;author_id:string;kind:string;body:string;image:string;created_at:string}
 @Component({selector:'warmly-social',standalone:true,imports:[FormsModule,DatePipe],templateUrl:'./social.html'})
 export class Social implements OnInit,OnDestroy {
- api=inject(MessengerApi); me=input.required<string>(); mode=input<'home'|'profile'>('home'); profiles=input<Profile[]>([]); saved=output<void>();
+ api=inject(MessengerApi); me=input.required<string>(); mode=input<'home'|'profile'>('home'); profiles=input<Profile[]>([]); saved=output<void>(); viewProfile=output<string>();
  posts=signal<Post[]>([]); stories=signal<Post[]>([]); viewer=signal<Post|null>(null); error=signal(''); notice=signal(''); busy=signal(false); loading=signal(true); more=signal(false);
  body='';image='';kind='post';editing=false; form={name:'',username:'',university:'',program:'',bio:'',interests:''}; private alive=true;private timer?:ReturnType<typeof setTimeout>;private pendingId='';
  ngOnInit(){void this.load();this.tick();}

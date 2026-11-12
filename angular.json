@@ -17,7 +17,8 @@
             "index": "Client/src/index.html",
             "tsConfig": "Client/tsconfig.app.json",
             "styles": [
-              "Client/src/styles.css"
+              "Client/src/styles.css",
+              "Client/src/depth.css"
             ],
             "outputPath": "dist/warmly",
             "assets": [
