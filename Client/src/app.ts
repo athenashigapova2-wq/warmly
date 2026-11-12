@@ -1,3 +1,6 @@
+import {Market} from './market';
+import {Events} from './events';
+import {AccountRole,RoleChoice,roleLabel} from './roles';
 import {Account} from './account';
 import {firstHello} from './chat-utils';
 import {Social} from './social';
@@ -6,7 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
 import { authFeedback, rememberedEmail, rememberEmail, restoreAuth } from './auth-utils';
-@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account],templateUrl:'./app.html'})
+@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account,Market,Events],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
   api = inject(MessengerApi);
@@ -17,17 +20,23 @@ export class App {
   historyLoaded=signal(false); enterToSend=true;
   hello(){return firstHello(this.name,this.active()?.kind,this.historyLoaded(),this.messages().length,this.draft);}
   suggestHello(){const hello=this.hello();if(hello)this.draft=hello;}
-  active = signal<Chat|null>(null); view = signal<'home'|'profile'|'chats'|'people'|'group'>('home'); details = signal(false);
+  active = signal<Chat|null>(null); view = signal<'home'|'profile'|'chats'|'people'|'group'|'market'|'events'>('home'); details = signal(false);
   results = signal<Profile[]>([]); searched = signal(false); hasOlder = signal(false);
   welcomeSeen=signal(false); showEmail=signal(false); retryIn=signal(0); canResend=signal(false); configLoading=signal(true);
   private cooldownTimer?:ReturnType<typeof setTimeout>;
   private nativeReturn=Promise.resolve();
   url = ''; key = ''; email = ''; password = ''; signup = false; name = ''; username = '';
+  accountRole=signal<AccountRole|null>(null); roleChoice:RoleChoice='student'; institution='';roleLabel=roleLabel;
+  persistRoleChoice(){try{sessionStorage.setItem('warmly.role-choice',JSON.stringify({choice:this.roleChoice,institution:this.institution}));}catch{}}
+  async readRole(){const {data,error}=await this.api.client.from('account_roles').select('*').eq('user_id',this.me()).maybeSingle();if(error)throw Error('The marketplace update needs its database migration. Please try again after setup.');this.accountRole.set(data);return data;}
+  openSection(view:'market'|'events'|'profile'){this.view.set(view);void this.readRole().catch(e=>this.error.set(e.message));}
+  marketConversation(id:string){void this.run(async()=>{await this.refresh();const chat=this.chats().find(c=>c.id===id);if(chat)await this.open(chat);});}
   query = ''; groupName = ''; selected: string[] = []; draft = ''; addId = '';
   private timer?: ReturnType<typeof setTimeout>; private epoch = 0; private historyVersion = 0;
   private retry?: {chatId:string; body:string; clientId:string};
   constructor() { void this.initialize(); }
   async initialize() {
+    try{const saved=JSON.parse(sessionStorage.getItem('warmly.role-choice')||'null');if(['student','university','visitor'].includes(saved?.choice)){this.roleChoice=saved.choice;this.institution=saved.institution||'';}}catch{}
     try {this.enterToSend=localStorage.getItem('warmly.enter-to-send')!=='false';}catch{}
     this.email=rememberedEmail(localStorage);
     if(this.email){this.welcomeSeen.set(true);this.showEmail.set(true);this.signup=false;}
@@ -79,7 +88,7 @@ export class App {
     throw new Error(feedback.message);
   }
   google() {void this.run(async()=>{
-    try {await this.api.google();this.notice.set('Finish signing in in your browser, then return to Warmly.');}
+    try {this.persistRoleChoice();await this.api.google();this.notice.set('Finish signing in in your browser, then return to Warmly.');}
     catch(error){this.authError(error);}
   });}
   resend() {if(this.retryIn())return;void this.run(async()=>{
@@ -87,6 +96,7 @@ export class App {
     if(error)this.authError(error);this.cooldown(60);this.notice.set('If your account needs confirmation, a new email is on its way. Check your inbox and spam folder.');
   });}
   authenticate() { if(this.signup && this.retryIn())return;void this.run(async()=>{
+    this.persistRoleChoice();
     const credentials = {email:this.email.trim(),password:this.password};
     rememberEmail(localStorage,credentials.email);this.canResend.set(false);
     const {data,error} = this.signup ? await this.api.client.auth.signUp({...credentials,options:{emailRedirectTo:this.api.redirectUrl()}}) : await this.api.client.auth.signInWithPassword(credentials);
@@ -97,13 +107,15 @@ export class App {
   async loadAccount() {
     const {data,error} = await this.api.client.from('profiles').select('*').eq('id',this.me()).maybeSingle();
     if (error) throw new Error('Apply the messenger migration in Supabase, then sign in again.');
-    if (!data) { this.stage.set('profile'); return; }
-    this.name=data.name; this.username=data.username; this.stage.set('app');
+    if (!data) { this.accountRole.set(null);this.stage.set('profile'); return; }
+    this.name=data.name; this.username=data.username;
+    if(!await this.readRole()){this.stage.set('profile');return;}
+    this.stage.set('app');
     try { await this.refresh(); } finally { this.schedule(); }
   }
-  saveProfile() { void this.run(async()=>{ await this.api.rpc('profile',{name:this.name,username:this.username}); await this.loadAccount(); }); }
+  saveProfile() { void this.run(async()=>{ await this.api.rpc('profile',{name:this.name,username:this.username});const {error}=await this.api.client.rpc('choose_account_role',{choice:this.roleChoice,institution:this.institution});if(error)throw error;try{sessionStorage.removeItem('warmly.role-choice');}catch{} await this.loadAccount(); }); }
   reset() {
-    this.signup=false;this.canResend.set(false);this.password='';this.welcomeSeen.set(true);this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
+    this.accountRole.set(null);this.signup=false;this.canResend.set(false);this.password='';this.welcomeSeen.set(true);this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
     this.profiles.set([]); this.friendships.set([]); this.chats.set([]); this.memberships.set([]);
     this.results.set([]); this.query=''; this.draft=''; this.retry=undefined; this.selected=[]; this.me.set(''); this.stage.set('auth');this.view.set('home');this.details.set(false);this.searched.set(false);
   }

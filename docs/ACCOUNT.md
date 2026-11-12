@@ -1,5 +1,7 @@
 # Account menu and first-message suggestions
 
+Update: migration 005 adds the public marketplace and replaces My Book Listings with My Listings. See MARKET_EVENTS.md for current role permissions and publishing.
+
 Apply supabase/migrations/202611110004_account.sql after 003. It is transactional and re-runnable. It adds private bookmarks and book listings; existing data is preserved.
 
 Profile opens the account menu: My Profile, My Posts, My Book Listings, Saved Items, My Groups, Settings, Help & Support, Log Out. My Posts and Saved Items paginate 20 rows at a time. Save post on Home bookmarks a post in Supabase. Deletion of a source post removes its bookmarks; original post RLS still controls access.

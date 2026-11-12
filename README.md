@@ -25,6 +25,12 @@ Open http://localhost:3000. For Angular live editing use `npm run dev` at http:/
 
 ## Features
 
+Marketplace and events setup: apply `supabase/migrations/202611110005_market_events.sql` after 004. See [roles, university approval and rollout](docs/MARKET_EVENTS.md).
+
+- Marketplace with photos, prices, categories, search and private seller chats.
+- Events, registration, optional capacity and university organizer tools.
+- Student, University and Visitor roles enforced by PostgreSQL; universities require manual approval.
+
 Social feed setup: run `supabase/migrations/202611110003_social.sql` after the messenger migration. See [rollout details](docs/SOCIAL.md).
 
 - Campus welcome screen with an original reference-inspired photo.

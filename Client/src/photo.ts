@@ -1,0 +1,4 @@
+export async function photoData(file:File):Promise<string>{
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>10*1024*1024)throw Error('Choose a JPG, PNG or WebP photo under 10 MB.');
+ const bitmap=await createImageBitmap(file);const scale=Math.min(1,800/Math.max(bitmap.width,bitmap.height));const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);const ctx=canvas.getContext('2d')!;ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();let quality=.8;let result=canvas.toDataURL('image/jpeg',quality);while(result.length>220000&&quality>.2){quality-=.1;result=canvas.toDataURL('image/jpeg',quality);}if(result.length>220000)throw Error('This photo is too detailed. Please choose a smaller image.');return result;
+}
