@@ -29,7 +29,7 @@ jobs:
           node --input-type=module -e "import {writeFileSync} from 'node:fs'; import {publicConfig} from './Client/src/auth-utils.ts'; writeFileSync('Client/public/config.json', JSON.stringify(publicConfig(process.env.SUPABASE_URL || '', process.env.SUPABASE_PUBLISHABLE_KEY || '')));"
       - run: npm run android:sync
       - run: chmod +x android/gradlew
-      - run: ./gradlew assembleDebug --no-daemon
+      - run: ./gradlew :app:assembleDebug --no-daemon
         working-directory: android
       - uses: actions/upload-artifact@v4
         with:

@@ -2,7 +2,8 @@
 import {bootstrapApplication} from '@angular/platform-browser';
 import {App} from '../Client/src/app';
 import {MessengerApi} from '../Client/src/transport';
-const people=[{id:'alice',name:'Amina',username:'amina'},{id:'bob',name:'Lucas',username:'lucas'},{id:'carol',name:'Emma',username:'emma'}];
+const people=[{id:'alice',name:'Amina',username:'amina',university:'Lund University'},{id:'bob',name:'Lucas',username:'lucas',university:'Lund University'},{id:'carol',name:'Emma',username:'emma',university:'Uppsala University'},{id:'dave',name:'Noah',username:'noah',university:'Lund University'}];
+if(new URLSearchParams(location.search).has('missingUniversity'))people[0].university='';
 const chats:any[]=[{id:'direct',kind:'direct',title:'Direct message',owner:'alice',created_at:'2026-11-11T10:00:00Z'},{id:'group',kind:'group',title:'Design study group',owner:'alice',created_at:'2026-11-11T09:00:00Z'}];
 const members:any[]=[{conversation_id:'direct',user_id:'alice'},{conversation_id:'direct',user_id:'bob'},...people.map(p=>({conversation_id:'group',user_id:p.id}))];
 const friends:any[]=[{id:'f1',sender:'alice',recipient:'bob',status:'accepted'},{id:'f2',sender:'carol',recipient:'alice',status:'pending'}];
@@ -15,18 +16,14 @@ const roles:any[]=[{user_id:'alice',requested_role:roleParam==='pending'?'univer
 const listings:any[]=[{id:'book1',owner_id:'bob',title:'Calculus: Early Transcendentals',author:'James Stewart',price:40,currency:'SEK',condition:'Like new',description:'A useful companion for your first year. Clean pages and a few helpful notes.',category:'Books',image:'',published:true,status:'available',created_at:new Date().toISOString()}];
 const campusEvents:any[]=[{id:'event1',owner_id:'bob',title:'Welcome Week Meetup',location:'Main campus courtyard',description:'Meet your new campus community over coffee and conversation.',starts_at:new Date(Date.now()+86400000*2).toISOString(),capacity:30,image:'',status:'scheduled',created_at:new Date().toISOString()}];
 const registrations:any[]=[];
-function fixtureQuery(table:string){const source=table==='account_roles'?roles:table==='book_listings'?listings:table==='campus_events'?campusEvents:registrations;let filters:((r:any)=>boolean)[]=[];let mutation='';let values:any;let projection='';
+function fixtureQuery(table:string){const source=table==='profiles'?people:table==='account_roles'?roles:table==='book_listings'?listings:table==='campus_events'?campusEvents:registrations;let filters:((r:any)=>boolean)[]=[];let mutation='';let values:any;let projection='';
  const result=()=>{let rows=source.filter(r=>filters.every(f=>f(r)));if(mutation==='insert'){const row={...values,owner_id:'alice',created_at:new Date().toISOString()};source.push(row);rows=[row];mutation='';}else if(mutation==='update'){rows.forEach(r=>Object.assign(r,values));mutation='';}else if(mutation==='delete'){for(const r of rows)source.splice(source.indexOf(r),1);mutation='';}return {data:structuredClone(rows)};};
- const q:any={select:(p:string)=>{projection=p;return q;},eq:(k:string,v:any)=>{filters.push(r=>r[k]===v);return q;},gt:(k:string,v:any)=>{filters.push(r=>r[k]>v);return q;},in:(k:string,v:any[])=>{filters.push(r=>v.includes(r[k]));return q;},ilike:(k:string,v:string)=>{filters.push(r=>String(r[k]).toLowerCase().includes(v.replaceAll('%','').toLowerCase()));return q;},order:()=>q,range:async(a:number,b:number)=>{const r=result();r.data=r.data.slice(a,b+1);return r;},limit:async(n:number)=>{const r=result();r.data=r.data.slice(0,n);return r;},maybeSingle:async()=>({data:result().data[0]||null}),insert:(v:any)=>{mutation='insert';values=v;return q;},update:(v:any)=>{mutation='update';values=v;return q;},delete:()=>{mutation='delete';return q;},then:(resolve:any,reject:any)=>Promise.resolve(result()).then(resolve,reject)};return q;}
+ const q:any={select:(p:string)=>{projection=p;return q;},eq:(k:string,v:any)=>{filters.push(r=>r[k]===v);return q;},neq:(k:string,v:any)=>{filters.push(r=>r[k]!==v);return q;},gt:(k:string,v:any)=>{filters.push(r=>r[k]>v);return q;},in:(k:string,v:any[])=>{filters.push(r=>v.includes(r[k]));return q;},ilike:(k:string,v:string)=>{filters.push(r=>String(r[k]).toLowerCase().includes(v.replaceAll('%','').toLowerCase()));return q;},order:()=>q,range:async(a:number,b:number)=>{const r=result();r.data=r.data.slice(a,b+1);return r;},limit:async(n:number)=>{const r=result();r.data=r.data.slice(0,n);return r;},maybeSingle:async()=>({data:result().data[0]||null}),insert:(v:any)=>{mutation='insert';values=v;return q;},update:(v:any)=>{mutation='update';values=v;return q;},delete:()=>{mutation='delete';return q;},then:(resolve:any,reject:any)=>Promise.resolve(result()).then(resolve,reject)};return q;}
 class FixtureApi {
  client:any={
   auth:{getSession:async()=>({data:{session:{user:{id:'alice'}}}}),onAuthStateChange:()=>{},signOut:async()=>({})},
   rpc:async(action:string,p:any)=>{if(action==='market_chat')return {data:'direct'};if(action==='register_event'){if(!registrations.some(r=>r.event_id===p.target&&r.user_id==='alice'))registrations.push({event_id:p.target,user_id:'alice',created_at:new Date().toISOString()});return {};}return {};},
-  from:(table:string)=>['account_roles','book_listings','campus_events','event_registrations'].includes(table)?fixtureQuery(table):table==='social_posts'?socialQuery():({update:(fields:any)=>({eq:()=>({select:async()=>{Object.assign(people[0],fields);return {data:[{id:'alice'}]};}})}),select:()=>({
-    eq:()=>({maybeSingle:async()=>({data:people[0]})}),
-    in:async()=>({data:people}),
-    like:()=>({neq:()=>({limit:async()=>({data:people.slice(1)})})})
-  })})
+  from:(table:string)=>table==='social_posts'?socialQuery():fixtureQuery(table)
  };
  configure(){}
  async finishOAuth(){return false;}
@@ -35,6 +32,8 @@ class FixtureApi {
  async rpc(action:string,p:any={}){
   if(action==='history')return structuredClone(messages.filter(m=>m.conversation_id===p.chatId));
   if(action==='send'){const m={id:messages.length+1,conversation_id:p.chatId,sender_id:'alice',body:p.body,created_at:new Date().toISOString()};messages.push(m);return m;}
+  if(action==='request'&&!friends.some(f=>f.sender===p.userId||f.recipient===p.userId))friends.push({id:'request-'+p.userId,sender:'alice',recipient:p.userId,status:'pending'});
+  if(action==='profile'){people[0].name=p.name;people[0].username=p.username;}
   if(action==='accept')friends.find(f=>f.id===p.requestId).status='accepted';
   if(action==='direct')return {id:'direct'};
   if(action==='group'){const id='new-group';chats.push({id,kind:'group',title:p.title,owner:'alice',created_at:new Date().toISOString()});for(const user_id of ['alice',...p.members])members.push({conversation_id:id,user_id});return {id};}

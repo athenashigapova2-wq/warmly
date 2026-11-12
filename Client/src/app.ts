@@ -1,4 +1,6 @@
 import {Market} from './market';
+import {Discover} from './discover';
+import {universityName} from './discover-utils';
 import {Events} from './events';
 import {AccountRole,RoleChoice,roleLabel} from './roles';
 import {Account} from './account';
@@ -9,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
 import { authFeedback, rememberedEmail, rememberEmail, restoreAuth } from './auth-utils';
-@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account,Market,Events],templateUrl:'./app.html'})
+@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account,Market,Events,Discover],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
   api = inject(MessengerApi);
@@ -25,9 +27,9 @@ export class App {
   welcomeSeen=signal(false); showEmail=signal(false); retryIn=signal(0); canResend=signal(false); configLoading=signal(true);
   private cooldownTimer?:ReturnType<typeof setTimeout>;
   private nativeReturn=Promise.resolve();
-  url = ''; key = ''; email = ''; password = ''; signup = false; name = ''; username = '';
+  url = ''; key = ''; email = ''; password = ''; signup = false; name = ''; username = ''; university='';
   accountRole=signal<AccountRole|null>(null); roleChoice:RoleChoice='student'; institution='';roleLabel=roleLabel;
-  persistRoleChoice(){try{sessionStorage.setItem('warmly.role-choice',JSON.stringify({choice:this.roleChoice,institution:this.institution}));}catch{}}
+  persistRoleChoice(){try{sessionStorage.setItem('warmly.role-choice',JSON.stringify({choice:this.roleChoice,institution:this.institution,university:this.university}));}catch{}}
   async readRole(){const {data,error}=await this.api.client.from('account_roles').select('*').eq('user_id',this.me()).maybeSingle();if(error)throw Error('The marketplace update needs its database migration. Please try again after setup.');this.accountRole.set(data);return data;}
   openSection(view:'market'|'events'|'profile'){this.view.set(view);void this.readRole().catch(e=>this.error.set(e.message));}
   marketConversation(id:string){void this.run(async()=>{await this.refresh();const chat=this.chats().find(c=>c.id===id);if(chat)await this.open(chat);});}
@@ -36,7 +38,7 @@ export class App {
   private retry?: {chatId:string; body:string; clientId:string};
   constructor() { void this.initialize(); }
   async initialize() {
-    try{const saved=JSON.parse(sessionStorage.getItem('warmly.role-choice')||'null');if(['student','university','visitor'].includes(saved?.choice)){this.roleChoice=saved.choice;this.institution=saved.institution||'';}}catch{}
+    try{const saved=JSON.parse(sessionStorage.getItem('warmly.role-choice')||'null');if(['student','university','visitor'].includes(saved?.choice)){this.roleChoice=saved.choice;this.institution=saved.institution||'';this.university=saved.university||'';}}catch{}
     try {this.enterToSend=localStorage.getItem('warmly.enter-to-send')!=='false';}catch{}
     this.email=rememberedEmail(localStorage);
     if(this.email){this.welcomeSeen.set(true);this.showEmail.set(true);this.signup=false;}
@@ -108,14 +110,23 @@ export class App {
     const {data,error} = await this.api.client.from('profiles').select('*').eq('id',this.me()).maybeSingle();
     if (error) throw new Error('Apply the messenger migration in Supabase, then sign in again.');
     if (!data) { this.accountRole.set(null);this.stage.set('profile'); return; }
-    this.name=data.name; this.username=data.username;
-    if(!await this.readRole()){this.stage.set('profile');return;}
+    this.name=data.name; this.username=data.username;this.university=data.university||this.university;
+    const role=await this.readRole();
+    if(!role||!data.university?.trim()){this.stage.set('profile');return;}
     this.stage.set('app');
     try { await this.refresh(); } finally { this.schedule(); }
   }
-  saveProfile() { void this.run(async()=>{ await this.api.rpc('profile',{name:this.name,username:this.username});const {error}=await this.api.client.rpc('choose_account_role',{choice:this.roleChoice,institution:this.institution});if(error)throw error;try{sessionStorage.removeItem('warmly.role-choice');}catch{} await this.loadAccount(); }); }
+  saveProfile() { void this.run(async()=>{
+    this.university=universityName(this.university);
+    if(!this.university||this.university.length>100)throw Error('Enter your university or the campus you want to connect with (up to 100 characters).');
+    await this.api.rpc('profile',{name:this.name,username:this.username});
+    const updated=await this.api.client.from('profiles').update({university:this.university}).eq('id',this.me()).select('id');
+    if(updated.error)throw updated.error;if(!updated.data?.length)throw Error('Your university was not saved. Please try again.');
+    if(!this.accountRole()){const {error}=await this.api.client.rpc('choose_account_role',{choice:this.roleChoice,institution:this.institution});if(error)throw error;}
+    try{sessionStorage.removeItem('warmly.role-choice');}catch{} await this.loadAccount();
+  }); }
   reset() {
-    this.accountRole.set(null);this.signup=false;this.canResend.set(false);this.password='';this.welcomeSeen.set(true);this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
+    this.accountRole.set(null);this.signup=false;this.canResend.set(false);this.password='';this.university='';this.name='';this.username='';this.welcomeSeen.set(true);this.epoch++; this.historyVersion++; clearTimeout(this.timer); this.active.set(null); this.messages.set([]);
     this.profiles.set([]); this.friendships.set([]); this.chats.set([]); this.memberships.set([]);
     this.results.set([]); this.query=''; this.draft=''; this.retry=undefined; this.selected=[]; this.me.set(''); this.stage.set('auth');this.view.set('home');this.details.set(false);this.searched.set(false);
   }

@@ -28,7 +28,9 @@ export function authFeedback(error: {message?:string; code?:string; status?:numb
 export function oauthCallback(raw: string, expected: string) {
   const url = new URL(raw); const target = new URL(expected);
   if (url.protocol!==target.protocol || url.host!==target.host || url.pathname!==target.pathname || url.username || url.password) return null;
-  if (url.searchParams.has('error')) return {error:url.searchParams.get('error')!,code:null};
+  // Supabase can return OAuth cancellation/errors in the fragment, including on Android.
+  const error = url.searchParams.get('error') || new URLSearchParams(url.hash.slice(1)).get('error');
+  if (error) return {error,code:null};
   const code=url.searchParams.get('code');
   return code ? {error:null,code} : null;
 }

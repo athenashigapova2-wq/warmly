@@ -21,6 +21,9 @@ test('OAuth return URLs are exact and only authorization codes are accepted',()=
  for(const url of ['https://evil.test/?code=abc','http://localhost:3001/?code=abc','http://localhost:3000/other?code=abc','http://localhost:3000/#access_token=secret'])assert.equal(oauthCallback(url,'http://localhost:3000/'),null);
  assert.equal(oauthCallback('app.warmly.messenger://evil/callback?code=abc',NATIVE_CALLBACK),null);
  assert.equal(oauthCallback(NATIVE_CALLBACK+'?error=access_denied',NATIVE_CALLBACK).error,'access_denied');
+ assert.deepEqual(oauthCallback(NATIVE_CALLBACK+'#error=access_denied&error_description=Cancelled',NATIVE_CALLBACK),{error:'access_denied',code:null});
+ assert.equal(oauthCallback('app.warmly.messenger://evil/callback#error=access_denied',NATIVE_CALLBACK),null);
+ assert.equal(oauthCallback(NATIVE_CALLBACK+'#access_token=secret',NATIVE_CALLBACK),null);
 });
 
 test('email survives reload without storing a password; blocked storage is tolerated',()=>{
