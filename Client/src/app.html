@@ -1,3 +1,4 @@
+@if(staging()){<div class="staging-banner" role="status">STAGING · Test environment · Use test accounts only</div>}
 @if(stage()==='auth' && !welcomeSeen()){
 <main class="landing"><a class="brand" href="/">✳ Warmly</a><div class="landing-grid"><section><div class="eyebrow">YOUR CAMPUS. YOUR PEOPLE.</div><h1>The student network<br>for <em>university life.</em></h1><p>Meet students, find study buddies,<br>and grow together.</p><button class="primary" (click)="welcomeSeen.set(true);signup=false">Get started →</button><button class="text-button" (click)="welcomeSeen.set(true);signup=false">I already have an account</button></section><img src="welcome-students.png" alt="Three university students sharing a laptop on campus"></div><footer>A little warmth. A world of connections.</footer></main>
 } @else if (stage() !== 'app') {

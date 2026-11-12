@@ -19,3 +19,5 @@ android/app/src/main/assets/capacitor.plugins.json
 *.jks
 *.keystore
 Client/public/config.json
+backups/
+staging-local/

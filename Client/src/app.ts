@@ -16,6 +16,7 @@ import { authFeedback, rememberedEmail, rememberEmail, restoreAuth } from './aut
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
   api = inject(MessengerApi);
+  staging = signal(false);
   viewedProfile=signal('');
   openPerson(id:string){if(!id)return;if(id===this.me()){this.openSection('profile');return;}this.error.set('');this.viewedProfile.set(id);}
   openDirectProfile(){const other=this.chatMembers().find(p=>p.id!==this.me());if(other)this.openPerson(other.id);}
@@ -53,7 +54,9 @@ export class App {
       let config;
       // A bundled project config takes precedence. The cache supports existing test installs.
       try { const r=await fetch('config.json',{cache:'no-store'}); if(r.ok)config=await r.json(); } catch {}
-      if(!config)config=JSON.parse(localStorage.getItem('warmly.public-config') || 'null');
+      // Hosted builds must never fall back to a previously cached project.
+      if(!config && ['localhost','127.0.0.1'].includes(location.hostname))config=JSON.parse(localStorage.getItem('warmly.public-config') || 'null');
+      this.staging.set(config?.environment==='staging');
       if (config?.url && config?.key) { this.url=config.url; this.key=config.key; await this.connect(); }
     } catch { this.stage.set('setup'); }
     finally {this.configLoading.set(false);}

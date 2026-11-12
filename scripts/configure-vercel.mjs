@@ -1,8 +1,9 @@
 import {mkdir,writeFile} from 'node:fs/promises';
 import {publicConfig} from '../Client/src/auth-utils.ts';
+import {deploymentConfig} from './environment-policy.mjs';
 export async function configureVercel(env, target) {
-  if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) throw new Error('Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in Vercel Project Settings > Environment Variables, then redeploy.');
-  const config=publicConfig(env.SUPABASE_URL,env.SUPABASE_PUBLISHABLE_KEY);
+  const selected=deploymentConfig(env);
+  const config={...publicConfig(selected.url,selected.key),...(selected.environment?{environment:selected.environment}:{})};
   await mkdir(new URL('.',target),{recursive:true});
   await writeFile(target,JSON.stringify(config,null,2)+'\n');
 }

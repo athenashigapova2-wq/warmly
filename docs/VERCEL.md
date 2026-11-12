@@ -2,7 +2,7 @@
 
 Import the existing GitHub repository, branch main. No Supabase integration or new database is needed.
 
-Project Settings > Environment Variables: add SUPABASE_URL (existing Supabase Project URL) and SUPABASE_PUBLISHABLE_KEY (publishable key, or legacy anon key) for Production. Add Preview only if you want preview deployments to use the same database. Never add a service_role key or Google Client Secret.
+Project Settings > Environment Variables: add SUPABASE_URL (existing Supabase Project URL) and SUPABASE_PUBLISHABLE_KEY (publishable key, or legacy anon key) for Production only. Preview must use a separate staging database: see [STAGING.md](STAGING.md). Never add a service_role key or Google Client Secret.
 
 The repository vercel.json sets the build command to npm run build:vercel, install command npm ci, and output directory dist/warmly/browser. Root Directory is the repository root. Use Node.js 24.x in Build and Deployment settings. The cloud build generates config.json from the two public variables and stops if they are missing or unsafe. The ignored local config.json is not uploaded through Git.
 
