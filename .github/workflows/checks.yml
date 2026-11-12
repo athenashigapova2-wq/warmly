@@ -19,3 +19,12 @@ jobs:
       - run: npm test
       # Compiles real components with a fixture API. No cloud credentials/writes.
       - run: npx ng build --configuration=qa --output-path=dist/qa
+      - name: Verify complete Preview build with synthetic public config
+        run: npm run build:vercel
+        env:
+          VERCEL: '1'
+          VERCEL_ENV: preview
+          PRODUCTION_SUPABASE_PROJECT_REF: production
+          STAGING_SUPABASE_PROJECT_REF: staging
+          STAGING_SUPABASE_URL: https://staging.supabase.co
+          STAGING_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture
