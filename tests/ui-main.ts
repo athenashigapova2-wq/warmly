@@ -18,13 +18,14 @@ const roleParam=new URLSearchParams(location.search).get('role')||'student';
 const roles:any[]=[{user_id:'alice',requested_role:roleParam==='pending'?'university':roleParam,approved:roleParam==='university',university_name:'Warmly University'}];
 const listings:any[]=[{id:'book1',owner_id:'bob',title:'Calculus: Early Transcendentals',author:'James Stewart',price:40,currency:'SEK',condition:'Like new',description:'A useful companion for your first year. Clean pages and a few helpful notes.',category:'Books',image:'',published:true,status:'available',created_at:new Date().toISOString()}];
 const campusEvents:any[]=[{id:'event1',owner_id:'bob',title:'Welcome Week Meetup',location:'Main campus courtyard',description:'Meet your new campus community over coffee and conversation.',starts_at:new Date(Date.now()+86400000*2).toISOString(),capacity:30,image:'',status:'scheduled',created_at:new Date().toISOString()}];
+const demoMedia=new Map<string,string>();
 const registrations:any[]=[];const reactions:any[]=[];const comments:any[]=[];
 function fixtureQuery(table:string){const source=table==='profiles'?people:table==='account_roles'?roles:table==='book_listings'?listings:table==='campus_events'?campusEvents:table==='post_reactions'?reactions:table==='post_comments'?comments:registrations;let filters:((r:any)=>boolean)[]=[];let mutation='';let values:any;let projection='';
  const result=()=>{let rows=source.filter(r=>filters.every(f=>f(r)));if(mutation==='insert'){const row={...values,owner_id:'alice',user_id:'alice',author_id:'alice',created_at:new Date().toISOString()};source.push(row);rows=[row];mutation='';}else if(mutation==='update'){rows.forEach(r=>Object.assign(r,values));mutation='';}else if(mutation==='delete'){for(const r of rows)source.splice(source.indexOf(r),1);mutation='';}return {data:structuredClone(rows)};};
  const q:any={select:(p:string)=>{projection=p;return q;},eq:(k:string,v:any)=>{filters.push(r=>r[k]===v);return q;},neq:(k:string,v:any)=>{filters.push(r=>r[k]!==v);return q;},gt:(k:string,v:any)=>{filters.push(r=>r[k]>v);return q;},in:(k:string,v:any[])=>{filters.push(r=>v.includes(r[k]));return q;},ilike:(k:string,v:string)=>{filters.push(r=>String(r[k]).toLowerCase().includes(v.replaceAll('%','').toLowerCase()));return q;},order:()=>q,or:()=>q,range:async(a:number,b:number)=>{const r=result();r.data=r.data.slice(a,b+1);return r;},limit:async(n:number)=>{const r=result();r.data=r.data.slice(0,n);return r;},maybeSingle:async()=>table==='profiles'&&projection.includes('bio')&&new URLSearchParams(location.search).has('profileError')?({data:null,error:{message:'Fixture network failure'}}):({data:result().data[0]||null}),insert:(v:any)=>{mutation='insert';values=v;return q;},update:(v:any)=>{mutation='update';values=v;return q;},delete:()=>{mutation='delete';return q;},then:(resolve:any,reject:any)=>Promise.resolve(result()).then(resolve,reject)};return q;}
 class FixtureApi {
  client:any={
- storage:{from:()=>({upload:async()=>({}),remove:async()=>({}),createSignedUrl:async()=>({data:{signedUrl:'/welcome-students.png'}})})},
+ storage:{from:()=>({upload:async(path:string,blob:Blob)=>{demoMedia.set(path,URL.createObjectURL(blob));return {};},remove:async()=>({}),createSignedUrl:async(path:string)=>({data:{signedUrl:demoMedia.get(path)||'/welcome-students.png'}})})},
   auth:{getSession:async()=>({data:{session:{user:{id:'alice'}}}}),onAuthStateChange:()=>{},signOut:async()=>({})},
   rpc:async(action:string,p:any)=>{if(action==='social_activity')return {data:p.targets.map((id:string)=>({post_id:id,hearts:reactions.filter(r=>r.post_id===id&&r.kind==='heart').length,thumbs:reactions.filter(r=>r.post_id===id&&r.kind==='thumb').length,comments:comments.filter(c=>c.post_id===id).length,mine:reactions.find(r=>r.post_id===id&&r.user_id==='alice')?.kind||null}))};if(action==='market_chat')return {data:'direct'};if(action==='register_event'){if(!registrations.some(r=>r.event_id===p.target&&r.user_id==='alice'))registrations.push({event_id:p.target,user_id:'alice',created_at:new Date().toISOString()});return {};}return {};},
   from:(table:string)=>table==='social_posts'?socialQuery():fixtureQuery(table)
@@ -45,5 +46,11 @@ class FixtureApi {
  }
 }
 bootstrapApplication(App,{providers:[{provide:MessengerApi,useClass:FixtureApi}]}).then(ref=>{
- const app=ref.components[0].instance as App;app.url='https://fixture.supabase.co';app.key='sb_publishable_fixture';void app.connect();
+ const app=ref.components[0].instance as App;app.url='https://fixture.supabase.co';app.key='sb_publishable_fixture';void app.connect().then(()=>app.view.set('discover'));
 });
+
+const demoBanner=document.createElement('div');
+demoBanner.textContent='DESIGN DEMO · Sample data only · Changes reset on refresh';
+demoBanner.setAttribute('role','status');
+demoBanner.style.cssText='position:sticky;top:0;z-index:1000;padding:10px 16px;background:#fff0b3;color:#563e00;text-align:center;font:600 13px/1.4 system-ui';
+document.body.prepend(demoBanner);

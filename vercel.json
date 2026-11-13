@@ -2,15 +2,19 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm ci",
-  "buildCommand": "npm run build:vercel",
-  "outputDirectory": "dist/warmly/browser",
+  "buildCommand": "npx ng build --configuration=qa --output-path=dist/demo",
+  "outputDirectory": "dist/demo/browser",
   "headers": [
     {
-      "source": "/config.json",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Cache-Control",
-          "value": "no-store"
+          "key": "Content-Security-Policy",
+          "value": "connect-src 'self' data: blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         }
       ]
     }
