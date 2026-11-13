@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import express from 'express';
+import {chromium} from 'playwright';
+const app=express();app.use(express.static('dist/qa/browser'));
+const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});let browser;
+try{
+ browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
+ await page.goto(`http://127.0.0.1:${server.address().port}/`);await mkdir('test-results',{recursive:true});
+ const nav=page.getByRole('navigation',{name:'Main navigation'});
+ await nav.getByRole('button',{name:/Discover/}).click();
+ assert.equal(await page.locator('.discover-entry').count(),3);
+ await page.screenshot({path:'test-results/discover-hub-desktop.png',fullPage:true,animations:'disabled'});
+ await page.getByRole('button',{name:/Stories Photos/}).click();
+ const first=page.locator('.feed-post').first();
+ await first.getByRole('button',{name:/Heart/}).click();await first.getByRole('button',{name:'♡ Heart · 1'}).waitFor();
+ await first.getByRole('button',{name:/Like/}).click();await first.getByRole('button',{name:'👍 Like · 1'}).waitFor();assert.equal(await first.getByRole('button',{name:'♡ Heart · 0'}).count(),1);
+ await first.getByRole('button',{name:/Comments/}).click();await first.getByRole('textbox',{name:'Write a comment'}).fill('See you on campus!');await first.getByRole('button',{name:'Comment',exact:true}).click();await first.getByText('See you on campus!',{exact:true}).waitFor();
+ await first.getByRole('button',{name:'Delete comment'}).click();await first.getByText('See you on campus!',{exact:true}).waitFor({state:'detached'});
+ await page.locator('.post-composer input[type=file]').setInputFiles('Client/public/welcome-students.png');await page.locator('.media-draft img').waitFor();
+ await page.getByRole('button',{name:'Share post',exact:true}).click();await page.locator('.feed-post warmly-media img').first().waitFor();
+ await page.locator('.post-composer input[type=file]').setInputFiles({name:'test.webm',mimeType:'video/webm',buffer:Buffer.from('fixture video upload')});await page.locator('.media-draft video').waitFor();
+ await page.getByRole('button',{name:'Share post',exact:true}).click();await page.locator('.feed-post video').first().waitFor();assert.equal(await page.locator('.feed-post video').first().getAttribute('autoplay'),null);
+ await nav.getByRole('button',{name:/Discover/}).click();await page.getByRole('button',{name:/Events Make/}).click();await page.getByRole('heading',{name:'Events',exact:false}).first().waitFor();
+ await nav.getByRole('button',{name:/Discover/}).click();await page.getByRole('button',{name:/Marketplace Find/}).click();await page.getByText('Calculus: Early Transcendentals',{exact:true}).waitFor();
+ await nav.getByRole('button',{name:/Profile/}).click();await page.getByRole('button',{name:'♙ My Profile ›'}).click();
+ await page.locator('.avatar-controls input[type=file]').setInputFiles('Client/public/welcome-students.png');await page.getByText('Profile photo updated.',{exact:true}).waitFor();await page.locator('.profile-avatar img').waitFor();
+ await page.getByRole('button',{name:'Remove photo',exact:true}).click();await page.locator('.profile-avatar img').waitFor({state:'detached'});
+ await nav.getByRole('button',{name:/Discover/}).click();await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/discover-hub-mobile.png',fullPage:true,animations:'disabled'});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.getByRole('button',{name:/Stories Photos/}).click();await page.screenshot({path:'test-results/stories-mobile.png',fullPage:true,animations:'disabled'});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ assert.deepEqual(errors,[]);console.log('PASS: Discover navigation, exclusive reactions, comments/delete, photo/video upload UI, avatar upload/remove, mobile layout. Local fixture only.');
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

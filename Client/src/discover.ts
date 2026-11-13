@@ -1,8 +1,9 @@
+import {Avatar} from './avatar';
 import {Component,inject,input,output,signal,OnInit,OnDestroy} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {MessengerApi,Profile,Friendship} from './transport';
 import {literalLike,universityOptions} from './discover-utils';
-@Component({selector:'warmly-discover',standalone:true,imports:[FormsModule],templateUrl:'./discover.html'})
+@Component({selector:'warmly-discover',standalone:true,imports:[Avatar,FormsModule],templateUrl:'./discover.html'})
 export class Discover implements OnInit,OnDestroy {
  api=inject(MessengerApi);me=input.required<string>();friendships=input<Friendship[]>([]);working=input(false);
  request=output<string>();message=output<string>();accept=output<string>();viewProfile=output<string>();
@@ -28,7 +29,7 @@ export class Discover implements OnInit,OnDestroy {
  async loadPeople(append=false){
   const generation=++this.generation;this.loading.set(true);this.error.set('');const offset=append?this.peopleOffset:0;
   if(!append)this.people.set([]);
-  try{let q=this.api.client.from('profiles').select('id,name,username,university,program').neq('id',this.me()).order('username');
+  try{let q=this.api.client.from('profiles').select('id,name,username,university,program,avatar_path').neq('id',this.me()).order('username');
    if(this.selected())q=q.ilike('university',literalLike(this.selected()));
    if(this.usernameQuery.trim())q=q.ilike('username','%'+literalLike(this.usernameQuery.trim().replace(/^@/,''))+'%');
    const {data,error}=await q.range(offset,offset+19);if(error)throw error;

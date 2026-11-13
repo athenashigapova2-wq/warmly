@@ -12,7 +12,7 @@ try{
  const page=await browser.newPage({viewport:{width:390,height:844}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  const url=`http://127.0.0.1:${server.address().port}/`;
- await page.goto(url);await page.getByRole('button',{name:/Discover/}).click();
+ await page.goto(url);await page.getByRole('button',{name:/Connections/}).click();
  const discover=page.locator('warmly-discover');
  await discover.getByRole('button',{name:'♧ Lund University',exact:true}).click();
  await discover.getByText('Noah',{exact:true}).waitFor();
@@ -35,6 +35,6 @@ try{
  await page.setViewportSize({width:1440,height:1000});await page.screenshot({animations:'disabled',path:'test-results/discover-desktop.png',fullPage:true});
  await page.goto(url+'?missingUniversity=1');await page.getByLabel('Your university',{exact:true}).waitFor();
  await page.getByLabel('Your university',{exact:true}).fill('  Stockholm   University  ');await page.getByRole('button',{name:'Start connecting →'}).click();
- await page.getByRole('button',{name:/Discover/}).click();await discover.getByRole('button',{name:'♧ Stockholm University',exact:true}).waitFor();
+ await page.getByRole('button',{name:/Connections/}).click();await discover.getByRole('button',{name:'♧ Stockholm University',exact:true}).waitFor();
  assert.deepEqual(errors,[]);console.log('PASS: university filter, friend request/accept, empty search, mobile layout, missing-university onboarding.');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

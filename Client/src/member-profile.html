@@ -3,7 +3,7 @@
   <div class="member-cover"><span class="cover-caption">A LITTLE MORE ABOUT</span><span class="cover-flower" aria-hidden="true">✳</span><button autofocus class="profile-close" aria-label="Close profile" (click)="dismiss.emit()">×</button></div>
   @if(loading()){<section class="member-content"><h2 id="member-profile-title">Getting to know you…</h2><p class="muted" role="status">Loading profile…</p></section>}
   @else if(profile();as p){
-   <section class="member-content"><div class="member-avatar" aria-hidden="true">{{p.name[0]}}</div><div class="member-title"><div><h2 id="member-profile-title">{{p.name}}</h2><p class="member-handle">&#64;{{p.username}}</p></div>@if(relation()?.status==='accepted'){<span class="connection-pill">✓ In your circle</span>}</div>
+   <section class="member-content"><warmly-avatar class="member-avatar" [person]="p"/><div class="member-title"><div><h2 id="member-profile-title">{{p.name}}</h2><p class="member-handle">&#64;{{p.username}}</p></div>@if(relation()?.status==='accepted'){<span class="connection-pill">✓ In your circle</span>}</div>
     <div class="member-facts">@if(p.university){<div><span aria-hidden="true">⌂</span><div><small>University</small><strong>{{p.university}}</strong></div></div>}@if(p.program){<div><span aria-hidden="true">✧</span><div><small>Studies</small><strong>{{p.program}}</strong></div></div>}</div>
     <section class="member-about"><h3>About {{p.name.split(' ')[0]}}</h3><p class="post-text">{{p.bio || 'A new face in the community. More about them soon.'}}</p></section>
     <section><h3>Interests</h3><div class="interest-chips">@for(interest of interests();track $index){<span>{{interest}}</span>}@empty{<p class="muted">No interests added yet.</p>}</div></section>
