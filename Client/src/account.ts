@@ -1,3 +1,5 @@
+import {MediaView} from './media-view';
+import {Avatar} from './avatar';
 import {Market} from './market';
 import {AccountRole,roleLabel} from './roles';
 import {Component,inject,input,output,signal} from '@angular/core';
@@ -5,7 +7,7 @@ import {FormsModule} from '@angular/forms';
 import {DatePipe} from '@angular/common';
 import {MessengerApi,Profile,Chat} from './transport';
 import {Social} from './social';
-@Component({selector:'warmly-account',standalone:true,imports:[FormsModule,DatePipe,Social,Market],templateUrl:'./account.html'})
+@Component({selector:'warmly-account',standalone:true,imports:[MediaView,Avatar,FormsModule,DatePipe,Social,Market],templateUrl:'./account.html'})
 export class Account {
  role=input<AccountRole|null>(null);sellerChat=output<string>();roleLabel=roleLabel;
  api=inject(MessengerApi);me=input.required<string>();email=input('');profiles=input<Profile[]>([]);groups=input<Chat[]>([]);

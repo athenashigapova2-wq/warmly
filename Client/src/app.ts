@@ -1,3 +1,4 @@
+import {Avatar} from './avatar';
 import {Market} from './market';
 import {Discover} from './discover';
 import {MemberProfile} from './member-profile';
@@ -12,7 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { MessengerApi, Profile, Chat, Message, Friendship, Membership } from './transport';
 import { authFeedback, rememberedEmail, rememberEmail, restoreAuth } from './auth-utils';
-@Component({selector:'warmly-app',standalone:true,imports:[FormsModule,DatePipe,Social,Account,Market,Events,Discover,MemberProfile],templateUrl:'./app.html'})
+@Component({selector:'warmly-app',standalone:true,imports:[Avatar,FormsModule,DatePipe,Social,Account,Market,Events,Discover,MemberProfile],templateUrl:'./app.html'})
 export class App {
   @ViewChild('timeline') timeline?: ElementRef<HTMLElement>;
   api = inject(MessengerApi);
@@ -28,7 +29,7 @@ export class App {
   historyLoaded=signal(false); enterToSend=true;
   hello(){return firstHello(this.name,this.active()?.kind,this.historyLoaded(),this.messages().length,this.draft);}
   suggestHello(){const hello=this.hello();if(hello)this.draft=hello;}
-  active = signal<Chat|null>(null); view = signal<'home'|'profile'|'chats'|'people'|'group'|'market'|'events'>('home'); details = signal(false);
+  active = signal<Chat|null>(null); view = signal<'home'|'profile'|'chats'|'people'|'group'|'market'|'events'|'discover'|'stories'>('home'); details = signal(false);
   results = signal<Profile[]>([]); searched = signal(false); hasOlder = signal(false);
   welcomeSeen=signal(false); showEmail=signal(false); retryIn=signal(0); canResend=signal(false); configLoading=signal(true);
   private cooldownTimer?:ReturnType<typeof setTimeout>;

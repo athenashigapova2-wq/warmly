@@ -11,7 +11,7 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  const url=`http://127.0.0.1:${server.address().port}/`;await mkdir('test-results',{recursive:true});
- await page.goto(url);await page.getByRole('button',{name:/Discover/}).waitFor();
+ await page.goto(url);await page.getByRole('button',{name:/Connections/}).waitFor();
  await page.screenshot({animations:'disabled',path:'test-results/depth-home-desktop.png',fullPage:true});
  await page.getByRole('button',{name:'View profile of Lucas',exact:true}).click();
  const dialog=page.getByRole('dialog');await dialog.getByRole('heading',{name:'Lucas',exact:true}).waitFor();
@@ -20,7 +20,7 @@ try{
  await page.screenshot({animations:'disabled',path:'test-results/member-profile-desktop.png'});
  await page.keyboard.press('Escape');await dialog.waitFor({state:'detached'});
  assert.match(await page.evaluate(()=>document.activeElement.getAttribute('aria-label')),/View profile of Lucas/);
- await page.getByRole('button',{name:/Discover/}).click();
+ await page.getByRole('button',{name:/Connections/}).click();
  const discover=page.locator('warmly-discover');await discover.getByRole('button',{name:'View profile of Noah',exact:true}).click();
  await dialog.getByRole('heading',{name:'Noah',exact:true}).waitFor();await dialog.getByRole('button',{name:'＋ Add friend',exact:true}).click();
  await dialog.getByText('✓ Friend request sent',{exact:true}).waitFor();await dialog.getByRole('button',{name:'Close profile'}).click();

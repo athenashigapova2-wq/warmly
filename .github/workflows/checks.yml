@@ -7,7 +7,7 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -19,6 +19,13 @@ jobs:
       - run: npm test
       # Compiles real components with a fixture API. No cloud credentials/writes.
       - run: npx ng build --configuration=qa --output-path=dist/qa
+      - name: Install browser for local fixture UI tests
+        run: npx playwright install --with-deps chromium
+      - name: Check Discover, Connections and profiles
+        run: |
+          node tests/discover-hub-ui.mjs
+          node tests/discover-ui.mjs
+          node tests/member-profile-ui.mjs
       - name: Verify complete Preview build with synthetic public config
         run: npm run build:vercel
         env:

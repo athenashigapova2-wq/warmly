@@ -1,6 +1,6 @@
 <section class="account-panel">
 @if(section()==='menu'){
-<header class="account-banner"><span class="account-avatar">{{person()?.name?.[0]}}</span><div><h2>{{person()?.name}}</h2><p>{{email()}}</p><small>&#64;{{person()?.username}}</small><p class="account-role">{{roleLabel(role())}}</p></div></header>
+<header class="account-banner"><warmly-avatar class="account-avatar" [person]="person()"/><div><h2>{{person()?.name}}</h2><p>{{email()}}</p><small>&#64;{{person()?.username}}</small><p class="account-role">{{roleLabel(role())}}</p></div></header>
 <nav class="account-menu" aria-label="Account menu">@for(item of options;track item[0]){<button (click)="go(item[0])"><span class="menu-icon">{{item[1]}}</span><span>{{item[2]}}</span><span class="chevron">›</span></button>}<button (click)="signout.emit()"><span class="menu-icon">↪</span><span>Log Out</span><span class="chevron">›</span></button></nav>
 }@else{
 <header class="account-heading"><button class="text-button" (click)="go('menu')" [disabled]="busy()">← My account</button><h2>{{label()}}</h2></header>
@@ -8,7 +8,7 @@
 @if(section()==='profile'){<warmly-social [me]="me()" mode="profile" [profiles]="profiles()" (saved)="saved.emit()"/>}
 @if(section()==='posts' || section()==='saved'){
  @for(row of rows();track row.id || row.post_id){@let p=section()==='saved'?row.social_posts:row;<article class="social-card feed-post">
- @if(p){<small>{{p.created_at | date:'MMM d, HH:mm'}}</small><p class="post-text">{{p.body}}</p>@if(p.image){<img class="post-photo" [src]="p.image" alt="Post photo" loading="lazy">}}
+ @if(p){<small>{{p.created_at | date:'MMM d, HH:mm'}}</small><p class="post-text">{{p.body}}</p>@if(p.media_path){<warmly-media [path]="p.media_path" [type]="p.media_type"/>}@if(p.image){<img class="post-photo" [src]="p.image" alt="Post photo" loading="lazy">}}
  @else{<p>This post is no longer available to you.</p>}
  @if(section()==='saved'){<button class="text-button" (click)="remove('saved_posts',row.post_id)" [disabled]="busy()">Remove from saved</button>}@else{<button class="text-button" (click)="remove('social_posts',row.id)" [disabled]="busy()">Delete my post</button>}
  </article>}
@@ -23,7 +23,7 @@
  <p class="muted">Preferences for this browser or device.</p><label class="setting-row"><input type="checkbox" [(ngModel)]="enter" (change)="settings()"><span>Press Enter to send messages<small>Turn off to use Enter for a new line.</small></span></label><label class="setting-row"><input type="checkbox" [(ngModel)]="remember" (change)="settings()"><span>Remember my email<small>Passwords are never saved by this setting.</small></span></label><p class="muted">Interface language: English</p>
 }
 @if(section()==='help'){
- <details open><summary>How do I add a friend?</summary><p>Open Discover, choose a university or search their username, and send a request. Messaging starts once they accept.</p></details><details><summary>Who can see my posts and stories?</summary><p>You and your accepted contacts. Stories disappear from view after 24 hours. Saved posts remain subject to the original access rules.</p></details><details><summary>Having trouble signing in?</summary><p>Use Sign in for an existing account. If you registered with Google, choose Continue with Google. Email confirmation is for a new email account.</p></details><details><summary>How do I report a problem?</summary><p>Send the person who invited you a screenshot, what you expected, and the steps that caused the problem. Never include passwords or sign-in links. In-app support messaging is not available yet.</p></details>
+ <details open><summary>How do I add a friend?</summary><p>Open Connections, choose a university or search their username, and send a request. Messaging starts once they accept.</p></details><details><summary>Who can see my posts and stories?</summary><p>You and your accepted contacts. Stories disappear from view after 24 hours. Saved posts remain subject to the original access rules.</p></details><details><summary>Having trouble signing in?</summary><p>Use Sign in for an existing account. If you registered with Google, choose Continue with Google. Email confirmation is for a new email account.</p></details><details><summary>How do I report a problem?</summary><p>Send the person who invited you a screenshot, what you expected, and the steps that caused the problem. Never include passwords or sign-in links. In-app support messaging is not available yet.</p></details>
 }
 @if(busy()){<p role="status">Loading…</p>}@if(more()){<button class="text-button" (click)="load(true)" [disabled]="busy()">Load more</button>}
 }
