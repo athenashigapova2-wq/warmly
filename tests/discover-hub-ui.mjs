@@ -9,7 +9,7 @@ try{
  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
  await page.goto(`http://127.0.0.1:${server.address().port}/`);await mkdir('test-results',{recursive:true});
  const nav=page.getByRole('navigation',{name:'Main navigation'});
- await nav.getByRole('button',{name:/Discover/}).click();
+ await nav.getByRole('button',{name:/Discover/}).click();await page.locator('.discover-entry').first().waitFor();
  assert.equal(await page.locator('.discover-entry').count(),3);
  await page.screenshot({path:'test-results/discover-hub-desktop.png',fullPage:true,animations:'disabled'});
  await page.getByRole('button',{name:/Stories Photos/}).click();
@@ -22,12 +22,12 @@ try{
  await page.getByRole('button',{name:'Share post',exact:true}).click();await page.locator('.feed-post warmly-media img').first().waitFor();
  await page.locator('.post-composer input[type=file]').setInputFiles({name:'test.webm',mimeType:'video/webm',buffer:Buffer.from('fixture video upload')});await page.locator('.media-draft video').waitFor();
  await page.getByRole('button',{name:'Share post',exact:true}).click();await page.locator('.feed-post video').first().waitFor();assert.equal(await page.locator('.feed-post video').first().getAttribute('autoplay'),null);
- await nav.getByRole('button',{name:/Discover/}).click();await page.getByRole('button',{name:/Events Make/}).click();await page.getByRole('heading',{name:'Events',exact:false}).first().waitFor();
- await nav.getByRole('button',{name:/Discover/}).click();await page.getByRole('button',{name:/Marketplace Find/}).click();await page.getByText('Calculus: Early Transcendentals',{exact:true}).waitFor();
+ await nav.getByRole('button',{name:/Discover/}).click();await page.locator('.discover-entry').first().waitFor();await page.getByRole('button',{name:/Events Make/}).click();await page.getByRole('heading',{name:'Events',exact:false}).first().waitFor();
+ await nav.getByRole('button',{name:/Discover/}).click();await page.locator('.discover-entry').first().waitFor();await page.getByRole('button',{name:/Marketplace Find/}).click();await page.getByText('Calculus: Early Transcendentals',{exact:true}).waitFor();
  await nav.getByRole('button',{name:/Profile/}).click();await page.getByRole('button',{name:'♙ My Profile ›'}).click();
  await page.locator('.avatar-controls input[type=file]').setInputFiles('Client/public/welcome-students.png');await page.getByText('Profile photo updated.',{exact:true}).waitFor();await page.locator('.profile-avatar img').waitFor();
  await page.getByRole('button',{name:'Remove photo',exact:true}).click();await page.locator('.profile-avatar img').waitFor({state:'detached'});
- await nav.getByRole('button',{name:/Discover/}).click();await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/discover-hub-mobile.png',fullPage:true,animations:'disabled'});
+ await nav.getByRole('button',{name:/Discover/}).click();await page.locator('.discover-entry').first().waitFor();await page.setViewportSize({width:390,height:844});await page.screenshot({path:'test-results/discover-hub-mobile.png',fullPage:true,animations:'disabled'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await page.getByRole('button',{name:/Stories Photos/}).click();await page.screenshot({path:'test-results/stories-mobile.png',fullPage:true,animations:'disabled'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
